@@ -1,0 +1,60 @@
+# DashScope API Key（百炼）
+# 请替换为你的 API Key，或通过环境变量 DASHSCOPE_API_KEY 设置
+dashscope:
+  api-key: ${DASHSCOPE_API_KEY}
+
+# AgentMesh 注册中心配置
+agentmesh:
+  registry:
+    self:
+      agent-id: agent-demo
+      name: "AgentMesh Demo Agent"
+      description: "演示 Agent，提供天气查询和知识检索能力"
+      version: "1.0.0"
+      url: http://localhost:8080
+    peers:
+      - http://localhost:8081
+  routing:
+    # 路由策略：keyword（默认）| llm | ab
+    strategy: keyword
+    llm:
+      # 阶段1粗筛 Top-K
+      top-k: 5
+      # 跳过粗筛的注册数阈值
+      skip-recall-threshold: 10
+      # 低置信度回退阈值
+      confidence-threshold: 0.6
+      # LLM 调用超时（秒），超时回退关键词路由
+      timeout: 5
+      cache:
+        # 是否启用缓存
+        enabled: true
+        # 最大条目数
+        max-size: 100
+        # 缓存 TTL（秒）
+        ttl: 300
+        # 启动时预热的高频输入（空列表时不创建预热器）
+        warmup-inputs: []
+    ab:
+      # A/B 测试采样率（1.0 = 全量）
+      sample-rate: 1.0
+  remote:
+    timeout: 15s
+    poll-interval: 1s
+    stream-timeout: 60s
+  tool:
+    execute-timeout: 30
+  auth:
+    enabled: false
+    api-key: "your-demo-key-here"
+
+# Actuator + Prometheus（Boot 3.x 属性名）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true

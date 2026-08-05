@@ -1,0 +1,67 @@
+[
+  {
+    "title": "AgentFlow 概述",
+    "content": "AgentFlow 是一个基于 Spring Boot 的 AI Agent 框架，支持 ReAct 推理模式、双模式 Function Calling（原生 + 降级 JSON 解析）、多模型适配（DashScope/OpenAI/Ollama）、流式输出（SSE）、RAG 知识库检索、Prompt 模板管理等功能。",
+    "category": "概述"
+  },
+  {
+    "title": "AgentFlow 支持的模型",
+    "content": "AgentFlow 通过 Provider Adapter 策略支持多种 LLM 模型：阿里云百炼 DashScope（qwen-plus、qwen-max、qwen-turbo 等通义千问系列）、OpenAI（GPT-4o、GPT-4-turbo、GPT-3.5-turbo 等）、Ollama 本地模型（llama3、mistral、qwen2.5 等）。模型切换通过 application.yml 配置驱动，无需修改代码。",
+    "category": "模型支持"
+  },
+  {
+    "title": "AgentFlow 架构设计",
+    "content": "AgentFlow 采用分层架构：agentflow-core 提供核心引擎（ReActAgent、LLM客户端、ToolRegistry、Prompt模板引擎），agentflow-rag 提供知识库检索模块（EmbeddingService、KnowledgeService），agentflow-examples 提供示例应用。通过 Spring Boot 自动配置和 application.yml 驱动，实现组件解耦和灵活组合。",
+    "category": "架构"
+  },
+  {
+    "title": "AgentFlow Function Calling 机制",
+    "content": "AgentFlow 支持双模式 Function Calling：原生模式优先使用 LLM 的原生 function calling 能力（如 DashScope 的 tool_calls），降级模式通过 JSON 解析实现工具调用。ToolRegistry 统一管理工具注册，支持参数 Schema 校验和工具名白名单校验。",
+    "category": "功能"
+  },
+  {
+    "title": "AgentFlow 流式输出（SSE）",
+    "content": "AgentFlow 通过 Server-Sent Events（SSE）实现流式输出，支持以下事件类型：THINKING（推理中）、TEXT（文本增量）、TOOL_CALL_START（工具调用开始）、TOOL_CALL_ARGS（参数增量）、TOOL_CALL_END（调用结束）、TOOL_RESULT（执行结果）、DONE（流结束）、ERROR（错误）。端点路径为 POST /chat/stream。",
+    "category": "功能"
+  },
+  {
+    "title": "AgentFlow RAG 知识库",
+    "content": "AgentFlow 的 RAG 模块支持语义检索，通过 EmbeddingService 将文本向量化后存储。支持两种模式：DB 模式（PostgreSQL + pgvector）和内存模式（无 DB 依赖）。KnowledgeTool 将知识库检索能力以工具形式集成到 Agent 循环中，LLM 可自主调用检索。",
+    "category": "功能"
+  },
+  {
+    "title": "AgentFlow 快速开始",
+    "content": "启动 AgentFlow 需要配置 dashscope.api-key（阿里云百炼 API Key），可通过环境变量 DASHSCOPE_API_KEY 或 application.yml 配置。默认使用 qwen-plus 模型，支持通过 application.yml 切换模型。启动后访问 POST /chat/stream 进行流式对话，POST /chat 进行普通对话。",
+    "category": "使用指南"
+  },
+  {
+    "title": "AgentFlow 技术栈",
+    "content": "AgentFlow 基于 Java 21 + Spring Boot 3.3.5 构建，使用 Reactor 实现响应式流式处理，MyBatis-Plus 管理数据库访问，Lombok 简化代码，Jackson 处理 JSON 序列化。RAG 模块使用 DashScope text-embedding-v2 模型进行文本向量化，支持 pgvector 向量数据库。",
+    "category": "技术栈"
+  },
+  {
+    "title": "AgentFlow 自定义 Tool 开发指南",
+    "content": "在 AgentFlow 中开发自定义 Tool 需要实现 com.agentflow.core.tool.Tool 接口。该接口有四个核心方法：getName() 返回工具名称（LLM 调用时使用），getDescription() 返回工具描述（帮助 LLM 理解工具用途），getParametersSchema() 返回 JSON Schema 格式的参数定义，execute(Map<String, Object> args) 实现工具执行逻辑。实现类加上 @Component 注解后，Spring 会自动注入到 ToolRegistry 中。ToolRegistry 通过构造函数接受 List<Tool<?, ?>> 参数，自动收集所有 Tool 实现。内置的 KnowledgeTool 就是一个典型示例，它通过调用 KnowledgeService.search() 实现语义检索。",
+    "category": "开发指南"
+  },
+  {
+    "title": "AgentFlow Prompt 模板管理",
+    "content": "AgentFlow 的 Prompt 模板系统由 PromptTemplateEngine 管理，支持外部模板文件 + 变量插值。模板中使用 ${tool_list} 等占位符，运行时由 PromptTemplateEngine 自动替换为实际的工具列表描述。TokenBudgetManager 负责控制 RAG 上下文长度，防止超过模型 Token 上限。在 DemoConfig 中通过 AgentConfig.builder().systemPrompt() 设置系统提示词，通过 .promptEngine() 注入模板引擎。",
+    "category": "开发指南"
+  },
+  {
+    "title": "AgentFlow 多模型切换指南",
+    "content": "AgentFlow 通过 Provider Adapter 策略实现多模型切换。在 DemoConfig 中，llmClient() Bean 决定使用哪个 LLM 客户端。当前默认使用 DashScopeLlmClient 连接阿里云百炼。要切换到 OpenAI，需实现 OpenAILlmClient 并在 DemoConfig 中替换 Bean。要切换到 Ollama 本地模型，需实现 OllamaLlmClient 并配置本地服务地址。所有 LLM 客户端都实现 LlmClient 接口，包括 chatStream() 流式方法和 chatWithToolsStream() 带工具调用的流式方法。模型切换只需修改配置类，Agent 核心逻辑无需改动。",
+    "category": "开发指南"
+  },
+  {
+    "title": "AgentFlow application.yml 配置详解",
+    "content": "AgentFlow 的核心配置项包括：dashscope.api-key（阿里云百炼 API Key，必填，可通过环境变量 DASHSCOPE_API_KEY 覆盖）、dashscope.model（模型名称，默认 qwen-plus，可选 qwen-max、qwen-turbo 等）、dashscope.base-url（API 地址，默认 https://dashscope.aliyuncs.com/compatible-mode/v1）、rag.similarity-threshold（RAG 相似度阈值，默认 0.3，值越低召回越多）、rag.top-k（RAG 检索返回的最大文档数，默认 5）、rag.embedding-model（向量化模型，默认 text-embedding-v2）。使用 RAG 无数据库模式时，需要在启动类上排除 DataSourceAutoConfiguration 和 MybatisPlusAutoConfiguration。",
+    "category": "配置说明"
+  },
+  {
+    "title": "AgentFlow 环境变量说明",
+    "content": "AgentFlow 支持通过环境变量配置敏感信息，避免硬编码。主要环境变量：DASHSCOPE_API_KEY（阿里云百炼 API Key，用于 LLM 调用和 Embedding 向量化）、SERVER_PORT（服务端口，默认 8080）。在 application.yml 中使用 ${dashscope.api-key:} 语法引用，冒号后为空字符串表示默认值，避免启动时因缺少配置而报错。生产环境建议通过环境变量或配置中心注入 API Key，不要在配置文件中明文存储。",
+    "category": "配置说明"
+  }
+]

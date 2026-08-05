@@ -1,0 +1,2 @@
+com.agentmesh.core.registry.AgentRegistryAutoConfiguration
+com.agentmesh.core.routing.RoutingAutoConfiguration
