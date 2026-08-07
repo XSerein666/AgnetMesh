@@ -1,7 +1,7 @@
 package com.jewel.a2a.server.service;
 
-import com.jewel.a2a.common.dto.AgentCard;
-import com.jewel.a2a.common.dto.AgentSkill;
+import com.agentmesh.core.protocol.AgentCard;
+import com.agentmesh.core.protocol.AgentSkill;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

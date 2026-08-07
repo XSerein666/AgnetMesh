@@ -1,5 +1,7 @@
 package com.jewel.a2a.server.controller;
 
+import com.agentmesh.core.protocol.AgentCard;
+import com.agentmesh.core.protocol.ChatRequest;
 import com.jewel.a2a.common.dto.*;
 import com.jewel.a2a.common.enums.TaskStatus;
 import com.jewel.a2a.repository.entity.TaskEntity;

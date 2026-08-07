@@ -36,9 +36,16 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# DashScope API 配置（后续 Phase 2 使用）
+# DashScope API 配置
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+
+# AgentMesh LLM 自动配置
+agentmesh:
+  llm:
+    provider: dashscope
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
 
 # 日志级别
 logging:

@@ -1,9 +1,9 @@
 package com.jewel.a2a.server.service;
 
 import com.agentmesh.core.agent.ReActAgent;
+import com.agentmesh.core.protocol.ChatRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jewel.a2a.common.dto.ChatMessage;
-import com.jewel.a2a.common.dto.ChatRequest;
 import com.jewel.a2a.common.dto.ChatResponse;
 import com.jewel.a2a.common.enums.TaskStatus;
 import com.jewel.a2a.repository.entity.ConversationEntity;
