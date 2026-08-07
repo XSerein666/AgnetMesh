@@ -7,7 +7,6 @@ import com.agentmesh.core.agent.OrchestrationResult;
 import com.agentmesh.core.agent.ReActAgent;
 import com.agentmesh.core.agent.SimpleOrchestrationPlan;
 import com.agentmesh.core.llm.LlmClient;
-import com.agentmesh.core.llm.StreamEvent;
 import com.agentmesh.core.memory.MemoryManager;
 import com.agentmesh.core.prompt.PromptTemplateEngine;
 import com.agentmesh.core.protocol.ChatRequest;
@@ -28,8 +27,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +75,9 @@ public class ChatService {
      */
     @SuppressWarnings("unchecked")
     private static String extractImageUrl(List<Map<String, Object>> toolCalls) {
-        if (toolCalls == null) return null;
+        if (toolCalls == null) {
+            return null;
+        }
         for (Map<String, Object> tc : toolCalls) {
             Object result = tc.get("result");
             if (result instanceof Map<?, ?> m && m.containsKey("imageUrl")) {
@@ -93,7 +92,9 @@ public class ChatService {
      */
     @SuppressWarnings("unchecked")
     private static String extractImageUrlFromMap(Map<String, Object> map) {
-        if (map == null) return null;
+        if (map == null) {
+            return null;
+        }
         // 直接查 imageUrl
         if (map.containsKey("imageUrl")) {
             return (String) map.get("imageUrl");
@@ -102,7 +103,9 @@ public class ChatService {
         for (Object value : map.values()) {
             if (value instanceof Map<?, ?> m) {
                 String found = extractImageUrlFromMap((Map<String, Object>) m);
-                if (found != null) return found;
+                if (found != null) {
+                    return found;
+                }
             }
         }
         return null;
@@ -381,7 +384,8 @@ public class ChatService {
             }
 
             taskRepository.updateStatus(taskId, TaskStatus.SUCCESS, output);
-            log.info("[ChatService] 路由执行完成: agentId={}, sessionId={}, taskId={}, hasImage={}", agentId, sessionId, taskId, imageUrl != null);
+            log.info("[ChatService] 路由执行完成: agentId={}, sessionId={}, taskId={}, hasImage={}",
+                    agentId, sessionId, taskId, imageUrl != null);
 
         } catch (Exception e) {
             log.error("[ChatService] 路由执行失败: sessionId={}", sessionId, e);
@@ -490,6 +494,9 @@ public class ChatService {
                             }
                             case ERROR -> {
                                 log.error("[ChatService] 流式推理错误: {}", event.getContent());
+                            }
+                            default -> {
+                                // 其他事件类型不处理
                             }
                             // DONE 事件在 doOnComplete 中处理
                         }
@@ -655,7 +662,9 @@ public class ChatService {
      */
     public List<Map<String, Object>> listConversations() {
         List<ConversationEntity> entities = conversationMapper.selectList(null);
-        if (entities == null) return List.of();
+        if (entities == null) {
+            return List.of();
+        }
         return entities.stream()
                 .sorted((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()))
                 .map(e -> {
@@ -673,7 +682,9 @@ public class ChatService {
      */
     public boolean deleteConversation(String sessionId) {
         ConversationEntity exist = conversationMapper.findBySessionId(sessionId);
-        if (exist == null) return false;
+        if (exist == null) {
+            return false;
+        }
         conversationMapper.deleteById(exist.getId());
         memoryManager.clear(sessionId);
         persistenceStore.clear(sessionId);

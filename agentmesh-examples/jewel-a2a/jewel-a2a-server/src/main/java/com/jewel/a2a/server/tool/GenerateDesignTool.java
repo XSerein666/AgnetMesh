@@ -209,7 +209,7 @@ public class GenerateDesignTool implements Tool<Map<String, Object>, Object> {
             doPoll.run();
         } else {
             // 后续轮询延迟 POLL_INTERVAL_MS
-            CompletableFuture.runAsync(() -> {}, 
+            CompletableFuture.runAsync(() -> { }, 
                     CompletableFuture.delayedExecutor(POLL_INTERVAL_MS, TimeUnit.MILLISECONDS))
                     .thenRun(doPoll);
         }

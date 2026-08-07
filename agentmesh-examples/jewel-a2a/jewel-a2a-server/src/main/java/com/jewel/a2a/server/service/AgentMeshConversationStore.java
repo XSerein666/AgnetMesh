@@ -2,7 +2,6 @@ package com.jewel.a2a.server.service;
 
 import com.agentmesh.core.session.ChatMessage;
 import com.agentmesh.core.session.ConversationStore;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jewel.a2a.repository.entity.ConversationEntity;
 import com.jewel.a2a.repository.mapper.ConversationMapper;

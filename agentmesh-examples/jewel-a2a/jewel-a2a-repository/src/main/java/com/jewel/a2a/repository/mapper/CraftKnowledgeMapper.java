@@ -19,19 +19,19 @@ public interface CraftKnowledgeMapper extends BaseMapper<CraftKnowledgeEntity> {
     @Select("SELECT COUNT(*) FROM craft_knowledge WHERE title = #{title}")
     int countByTitle(@Param("title") String title);
 
-    @Select("SELECT id, title, content, category, metadata, created_at, " +
-            "1 - (embedding <=> CAST(#{queryVector} AS vector)) AS similarity " +
-            "FROM craft_knowledge " +
-            "WHERE 1 - (embedding <=> CAST(#{queryVector} AS vector)) >= #{threshold} " +
-            "ORDER BY embedding <=> CAST(#{queryVector} AS vector) " +
-            "LIMIT #{limit}")
+    @Select("SELECT id, title, content, category, metadata, created_at, "
+            + "1 - (embedding <=> CAST(#{queryVector} AS vector)) AS similarity "
+            + "FROM craft_knowledge "
+            + "WHERE 1 - (embedding <=> CAST(#{queryVector} AS vector)) >= #{threshold} "
+            + "ORDER BY embedding <=> CAST(#{queryVector} AS vector) "
+            + "LIMIT #{limit}")
     List<CraftKnowledgeEntity> searchSimilar(
             @Param("queryVector") String queryVector,
             @Param("threshold") double threshold,
             @Param("limit") int limit);
 
-    @Insert("INSERT INTO craft_knowledge (title, content, embedding, category, metadata) " +
-            "VALUES (#{title}, #{content}, CAST(#{embedding} AS vector), #{category}, CAST(#{metadata} AS jsonb))")
+    @Insert("INSERT INTO craft_knowledge (title, content, embedding, category, metadata) "
+            + "VALUES (#{title}, #{content}, CAST(#{embedding} AS vector), #{category}, CAST(#{metadata} AS jsonb))")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertWithVector(CraftKnowledgeEntity entity);
 }
