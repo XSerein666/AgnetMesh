@@ -37,7 +37,9 @@ public class RoutingAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnExpression("'${agentmesh.routing.strategy:keyword}'.equals('llm') || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
+    @ConditionalOnExpression(
+            "'${agentmesh.routing.strategy:keyword}'.equals('llm')"
+                    + " || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
     public LlmRoutingStrategy llmRoutingStrategy(LlmClient llmClient,
                                                   KeywordRoutingStrategy fallback,
                                                   RoutingProperties properties,
@@ -96,7 +98,9 @@ public class RoutingAutoConfiguration {
     /** Agent 描述自动生成器 */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnExpression("'${agentmesh.routing.strategy:keyword}'.equals('llm') || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
+    @ConditionalOnExpression(
+            "'${agentmesh.routing.strategy:keyword}'.equals('llm')"
+                    + " || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
     public AgentDescriptionGenerator agentDescriptionGenerator(LlmClient llmClient) {
         return new AgentDescriptionGenerator(llmClient, Duration.ofSeconds(10));
     }
@@ -104,7 +108,9 @@ public class RoutingAutoConfiguration {
     /** descGen 专用线程池 */
     @Bean
     @ConditionalOnMissingBean(name = "descGenExecutor")
-    @ConditionalOnExpression("'${agentmesh.routing.strategy:keyword}'.equals('llm') || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
+    @ConditionalOnExpression(
+            "'${agentmesh.routing.strategy:keyword}'.equals('llm')"
+                    + " || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
     public ExecutorService descGenExecutor() {
         return Executors.newFixedThreadPool(2, r -> {
             Thread t = new Thread(r, "descGen");
@@ -116,7 +122,9 @@ public class RoutingAutoConfiguration {
     /** 缓存预热器（仅 warmup-inputs 非空时创建） */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnExpression("'${agentmesh.routing.strategy:keyword}'.equals('llm') || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
+    @ConditionalOnExpression(
+            "'${agentmesh.routing.strategy:keyword}'.equals('llm')"
+                    + " || '${agentmesh.routing.strategy:keyword}'.equals('ab')")
     @ConditionalOnProperty(name = "agentmesh.routing.llm.cache.warmup-inputs")
     public RoutingCacheWarmer routingCacheWarmer(
             RoutingStrategy llmStrategy,

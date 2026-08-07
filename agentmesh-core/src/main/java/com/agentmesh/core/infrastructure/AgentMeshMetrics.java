@@ -150,6 +150,48 @@ public class AgentMeshMetrics {
                 .increment();
     }
 
+    // ========== Orchestration 指标 ==========
+
+    /**
+     * 编排调用计数。
+     * @param orchestratorType sequential | parallel | conditional
+     * @param status           SUCCESS | FAILED
+     */
+    public void recordOrchestration(String orchestratorType, String status) {
+        Counter.builder("agentmesh.orchestration.invocations")
+                .tag("orchestrator", orchestratorType)
+                .tag("status", status)
+                .register(registry)
+                .increment();
+    }
+
+    public Timer.Sample startOrchestrationTimer() {
+        return Timer.start(registry);
+    }
+
+    public void stopOrchestrationTimer(Timer.Sample sample, String orchestratorType) {
+        sample.stop(Timer.builder("agentmesh.orchestration.latency")
+                .tag("orchestrator", orchestratorType)
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .publishPercentileHistogram()
+                .minimumExpectedValue(Duration.ofMillis(1))
+                .maximumExpectedValue(Duration.ofSeconds(60))
+                .register(registry));
+    }
+
+    /**
+     * Failover 触发计数（仅 ConditionalOrchestrator 在 onErrorResume 时调用）。
+     * @param failedAgent 触发 failover 的源 Agent ID
+     * @param nextAgent   切换到的目标 Agent ID
+     */
+    public void recordFailover(String failedAgent, String nextAgent) {
+        Counter.builder("agentmesh.orchestration.failover")
+                .tag("failed_agent", failedAgent)
+                .tag("next_agent", nextAgent)
+                .register(registry)
+                .increment();
+    }
+
     // ========== A/B 测试指标 ==========
 
     /**

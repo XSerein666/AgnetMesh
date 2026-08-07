@@ -2,16 +2,14 @@ package com.agentmesh.core.llm;
 
 import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.llm.adapter.ProviderAdapter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,7 +20,7 @@ import java.util.Map;
  * 支持文本对话、function calling、多模态视觉
  */
 @Slf4j
-public class DashScopeLlmClient implements LlmClient {
+public class DashScopeLlmClient extends AbstractStreamingLlmClient {
 
     private static final String TEXT_API_URL =
             "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
@@ -34,9 +32,6 @@ public class DashScopeLlmClient implements LlmClient {
     private final String textModel;
     private final String visionModel;
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final ProviderAdapter adapter;
-    private final AgentMeshMetrics metrics;
 
     public DashScopeLlmClient(String apiKey) {
         this(apiKey, null);
@@ -52,13 +47,16 @@ public class DashScopeLlmClient implements LlmClient {
 
     public DashScopeLlmClient(String apiKey, String textModel, String visionModel,
                               ProviderAdapter adapter, AgentMeshMetrics metrics) {
+        super(adapter, metrics);
         this.apiKey = apiKey;
         this.textModel = textModel;
         this.visionModel = visionModel;
-        this.adapter = adapter;
         this.restTemplate = createRestTemplate();
-        this.objectMapper = new ObjectMapper();
-        this.metrics = metrics;
+    }
+
+    @Override
+    protected String getProvider() {
+        return PROVIDER;
     }
 
     private RestTemplate createRestTemplate() {
@@ -138,12 +136,12 @@ public class DashScopeLlmClient implements LlmClient {
             body.put("parameters", parameters);
 
             String requestBody = objectMapper.writeValueAsString(body);
-            log.info("[DashScopeLlmClient] 工具调用请求: {}", requestBody);
+            log.debug("[DashScopeLlmClient] 工具调用请求: {}", requestBody);
             HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
             ResponseEntity<String> response = restTemplate.postForEntity(TEXT_API_URL, request, String.class);
 
             String responseBody = response.getBody();
-            log.info("[DashScopeLlmClient] 工具调用响应: {}", responseBody);
+            log.debug("[DashScopeLlmClient] 工具调用响应: {}", responseBody);
 
             Map<String, Object> respBody = objectMapper.readValue(responseBody, Map.class);
             recordLlmMetrics(respBody);
@@ -158,62 +156,25 @@ public class DashScopeLlmClient implements LlmClient {
     public Flux<StreamEvent> chatWithToolsStream(List<Map<String, Object>> messages,
                                                   List<ToolDefinition> tools,
                                                   ToolChoice toolChoice) {
-        return Flux.create(sink -> {
-            try {
-                if (metrics != null) {
-                    metrics.recordLlmCall(PROVIDER);
-                }
+        Map<String, Object> body = buildRequestBody(messages, tools, toolChoice);
+        Map<String, Object> parameters = (Map<String, Object>) body.get("parameters");
+        parameters.put("stream", true);
+        parameters.put("incremental_output", true);
 
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.set("Authorization", "Bearer " + apiKey);
-                headers.set("X-DashScope-SSE", "enable");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiKey);
+        headers.set("X-DashScope-SSE", "enable");
 
-                Map<String, Object> body = buildRequestBody(messages, tools, toolChoice);
-                Map<String, Object> parameters = (Map<String, Object>) body.get("parameters");
-                parameters.put("stream", true);
-                parameters.put("incremental_output", true);
-
-                String requestBody = objectMapper.writeValueAsString(body);
-                log.info("[DashScopeLlmClient] 流式请求: {}", requestBody);
-
-                restTemplate.execute(TEXT_API_URL, HttpMethod.POST, request -> {
-                    headers.forEach((k, values) ->
-                            values.forEach(v -> request.getHeaders().add(k, v)));
-                    request.getBody().write(requestBody.getBytes(StandardCharsets.UTF_8));
-                }, response -> {
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            if (line.startsWith("data:")) {
-                                String json = line.substring(5).trim();
-                                if (json.isEmpty()) continue;
-                                StreamEvent event = adapter.adaptStreamChunk(json, objectMapper);
-                                if (event != null) {
-                                    sink.next(event);
-                                }
-                            }
-                        }
-                    }
-                    sink.next(StreamEvent.builder().type(StreamEvent.Type.DONE).build());
-                    sink.complete();
-                    return null;
-                });
-            } catch (Exception e) {
-                log.error("[DashScopeLlmClient] 流式调用失败", e);
-                sink.next(StreamEvent.builder()
-                        .type(StreamEvent.Type.ERROR)
-                        .content("LLM 流式调用失败: " + e.getMessage())
-                        .build());
-                sink.complete();
-            }
-        });
+        // DashScope 使用 SSE 格式
+        return doStream(body, TEXT_API_URL, headers, true, restTemplate);
     }
 
     @SuppressWarnings("unchecked")
     private void recordLlmMetrics(Map<String, Object> respBody) {
-        if (metrics == null) return;
+        if (metrics == null) {
+            return;
+        }
         metrics.recordLlmCall(PROVIDER);
         Map<String, Object> usage = (Map<String, Object>) respBody.get("usage");
         if (usage != null) {

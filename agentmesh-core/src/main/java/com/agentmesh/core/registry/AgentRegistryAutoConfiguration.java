@@ -147,8 +147,9 @@ public class AgentRegistryAutoConfiguration {
     @ConditionalOnMissingBean
     public SequentialAgentOrchestrator sequentialAgentOrchestrator(
             SequentialAgentOrchestrator.ReActAgentFactory agentFactory,
-            AgentClient agentClient) {
-        return new SequentialAgentOrchestrator(agentFactory, agentClient);
+            AgentClient agentClient,
+            AgentMeshMetrics metrics) {
+        return new SequentialAgentOrchestrator(agentFactory, agentClient, metrics);
     }
 
     /**
@@ -159,8 +160,9 @@ public class AgentRegistryAutoConfiguration {
     public ConditionalOrchestrator conditionalOrchestrator(
             SequentialAgentOrchestrator.ReActAgentFactory agentFactory,
             AgentClient agentClient,
-            RoutingStrategy routingStrategy) {
-        return new ConditionalOrchestrator(agentFactory, agentClient, routingStrategy);
+            RoutingStrategy routingStrategy,
+            AgentMeshMetrics metrics) {
+        return new ConditionalOrchestrator(agentFactory, agentClient, routingStrategy, metrics);
     }
 
     /**
@@ -210,7 +212,7 @@ public class AgentRegistryAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public AgentMeshMetrics AgentMeshMetrics(MeterRegistry meterRegistry) {
+    public AgentMeshMetrics agentMeshMetrics(MeterRegistry meterRegistry) {
         return new AgentMeshMetrics(meterRegistry);
     }
 }

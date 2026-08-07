@@ -2,11 +2,18 @@ package com.agentmesh.core.planning;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -113,8 +120,11 @@ public class DagPlanExecutor implements PlanExecutor {
                                     Math.max(1, deadline - System.currentTimeMillis()),
                                     TimeUnit.MILLISECONDS);
                             results.add(result);
-                            if (result.getStatus() == SubTaskStatus.DONE) completed++;
-                            else failed++;
+                            if (result.getStatus() == SubTaskStatus.DONE) {
+                                completed++;
+                            } else {
+                                failed++;
+                            }
                         } catch (TimeoutException e) {
                             failed++;
                             results.add(PlanResult.SubTaskResult.builder()
@@ -129,8 +139,11 @@ public class DagPlanExecutor implements PlanExecutor {
                         task.setStatus(SubTaskStatus.RUNNING);
                         PlanResult.SubTaskResult result = executeSubTask(task, subTaskRunner, deadline);
                         results.add(result);
-                        if (result.getStatus() == SubTaskStatus.DONE) completed++;
-                        else failed++;
+                        if (result.getStatus() == SubTaskStatus.DONE) {
+                            completed++;
+                        } else {
+                            failed++;
+                        }
                     }
                 }
 
@@ -250,7 +263,9 @@ public class DagPlanExecutor implements PlanExecutor {
                     }
                     // 任一依赖失败，此任务不可执行
                     for (String depId : t.getDependsOn()) {
-                        if (failedIds.contains(depId)) return false;
+                        if (failedIds.contains(depId)) {
+                            return false;
+                        }
                     }
                     // 所有依赖已完成
                     return t.getDependsOn().stream().allMatch(completedIds::contains);
@@ -275,8 +290,12 @@ public class DagPlanExecutor implements PlanExecutor {
 
     private boolean dfs(String nodeId, Map<String, SubTask> taskMap,
                          Set<String> visited, Set<String> inStack) {
-        if (inStack.contains(nodeId)) return true;
-        if (visited.contains(nodeId)) return false;
+        if (inStack.contains(nodeId)) {
+            return true;
+        }
+        if (visited.contains(nodeId)) {
+            return false;
+        }
 
         visited.add(nodeId);
         inStack.add(nodeId);

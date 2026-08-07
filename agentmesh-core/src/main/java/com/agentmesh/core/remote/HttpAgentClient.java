@@ -3,6 +3,7 @@ package com.agentmesh.core.remote;
 import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.llm.StreamEvent;
 import com.agentmesh.core.registry.AgentAuthProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -36,6 +37,7 @@ public class HttpAgentClient implements AgentClient {
     private final AgentAuthProperties authProperties;
     private final String selfAgentId;
     private final AgentMeshMetrics metrics;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HttpAgentClient(RestTemplate restTemplate, WebClient webClient,
                            RemoteToolProperties properties,
@@ -85,7 +87,9 @@ public class HttpAgentClient implements AgentClient {
 
                 Map<String, Object> taskResp = restTemplate.getForObject(
                         base + "/a2a/task/" + taskId, Map.class);
-                if (taskResp == null) continue;
+                if (taskResp == null) {
+                    continue;
+                }
 
                 String status = String.valueOf(taskResp.getOrDefault("status", ""));
                 if ("SUCCESS".equals(status)) {
@@ -272,7 +276,7 @@ public class HttpAgentClient implements AgentClient {
      */
     private StreamEvent parseStreamEvent(String data) {
         try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(data, StreamEvent.class);
+            return objectMapper.readValue(data, StreamEvent.class);
         } catch (Exception e) {
             log.warn("[AgentClient] SSE 事件解析失败: {}", data);
             return null;

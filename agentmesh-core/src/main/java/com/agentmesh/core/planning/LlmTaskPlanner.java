@@ -7,7 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -59,9 +64,13 @@ public class LlmTaskPlanner implements TaskPlanner {
             int count = 0;
 
             for (Map<String, Object> raw : rawSubTasks) {
-                if (count >= maxSubtasks) break;
+                if (count >= maxSubtasks) {
+                    break;
+                }
                 String id = String.valueOf(raw.getOrDefault("id", String.valueOf(count + 1)));
-                if (!subTaskIds.add(id)) continue; // 去重
+                if (!subTaskIds.add(id)) {
+                    continue;
+                } // 去重
 
                 String description = String.valueOf(raw.getOrDefault("description", ""));
                 @SuppressWarnings("unchecked")
@@ -116,7 +125,9 @@ public class LlmTaskPlanner implements TaskPlanner {
     }
 
     private String buildToolsDescription(List<ToolDefinition> tools) {
-        if (tools == null || tools.isEmpty()) return "无可用工具";
+        if (tools == null || tools.isEmpty()) {
+            return "无可用工具";
+        }
         StringBuilder sb = new StringBuilder();
         for (ToolDefinition tool : tools) {
             sb.append("- ").append(tool.getName())

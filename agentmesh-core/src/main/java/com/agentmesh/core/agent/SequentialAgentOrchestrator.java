@@ -1,11 +1,12 @@
 package com.agentmesh.core.agent;
 
+import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.infrastructure.TraceIdContext;
 import com.agentmesh.core.llm.StreamEvent;
 import com.agentmesh.core.remote.AgentClient;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,10 +37,17 @@ public class SequentialAgentOrchestrator implements AgentOrchestrator {
 
     private final ReActAgentFactory agentFactory;
     private final AgentClient agentClient;
+    private final AgentMeshMetrics metrics;
 
     public SequentialAgentOrchestrator(ReActAgentFactory agentFactory, AgentClient agentClient) {
+        this(agentFactory, agentClient, null);
+    }
+
+    public SequentialAgentOrchestrator(ReActAgentFactory agentFactory, AgentClient agentClient,
+                                        AgentMeshMetrics metrics) {
         this.agentFactory = agentFactory;
         this.agentClient = agentClient;
+        this.metrics = metrics;
     }
 
     /**
@@ -78,7 +86,25 @@ public class SequentialAgentOrchestrator implements AgentOrchestrator {
         String traceId = TraceIdContext.get();
         log.info("[SequentialOrchestrator] 顺序编排启动, agentCount={}, traceId={}", agents.size(), traceId);
 
-        return executeChain(agents, 0, input, traceId);
+        Timer.Sample sample = metrics != null ? metrics.startOrchestrationTimer() : null;
+        String orchestratorType = "sequential";
+
+        return executeChain(agents, 0, input, traceId)
+                .doOnComplete(() -> recordOrchestrationComplete(orchestratorType, "SUCCESS", sample))
+                .doOnError(e -> {
+                    log.error("[SequentialOrchestrator] 编排异常, traceId={}", traceId, e);
+                    recordOrchestrationComplete(orchestratorType, "FAILED", sample);
+                });
+    }
+
+    private void recordOrchestrationComplete(String orchestratorType, String status, Timer.Sample sample) {
+        if (metrics == null) {
+            return;
+        }
+        metrics.recordOrchestration(orchestratorType, status);
+        if (sample != null) {
+            metrics.stopOrchestrationTimer(sample, orchestratorType);
+        }
     }
 
     /**

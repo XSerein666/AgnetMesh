@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!-- Lombok @Data / @Builder 生成的 getter/setter 暴露可变对象是设计预期，DTO 不需要防御性拷贝 -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- 防御性 catch(Exception) 用于 JSON 解析等容错场景，属设计选择 -->
+    <Match>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+    </Match>
+
+    <!-- toLowerCase/toUpperCase 用于搜索关键词匹配，无需 locale 敏感 -->
+    <Match>
+        <Bug pattern="DM_CONVERT_CASE"/>
+    </Match>
+
+</FindBugsFilter>

@@ -9,7 +9,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -154,11 +156,15 @@ public class InMemoryAgentRegistry implements AgentRegistry {
      */
     @Override
     public boolean awaitDescGenCompletion(Duration timeout) {
-        if (pendingDescGen.isEmpty()) return true;
+        if (pendingDescGen.isEmpty()) {
+            return true;
+        }
         long deadline = System.currentTimeMillis() + timeout.toMillis();
         for (CompletableFuture<Void> f : pendingDescGen.values()) {
             long remaining = deadline - System.currentTimeMillis();
-            if (remaining <= 0) return false;
+            if (remaining <= 0) {
+                return false;
+            }
             try {
                 f.get(remaining, java.util.concurrent.TimeUnit.MILLISECONDS);
             } catch (Exception e) {
@@ -277,7 +283,9 @@ public class InMemoryAgentRegistry implements AgentRegistry {
      * 对 skills 的 name + description 做 SHA-256，用于判断是否需要重新生成描述。
      */
     private String computeSkillsFingerprint(AgentCard card) {
-        if (card.getSkills() == null || card.getSkills().isEmpty()) return "";
+        if (card.getSkills() == null || card.getSkills().isEmpty()) {
+            return "";
+        }
         String raw = card.getSkills().stream()
                 .map(s -> s.getName() + "|" + (s.getDescription() != null ? s.getDescription() : ""))
                 .sorted()

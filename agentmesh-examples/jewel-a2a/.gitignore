@@ -1,0 +1,30 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 敏感配置
+application-local.yml
+application-prod.yml
+*.env
+
+# 需求文档
+*.docx
+*.doc
+
+# 日志
+logs/
+*.log

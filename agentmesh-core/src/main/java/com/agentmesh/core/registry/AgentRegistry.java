@@ -36,7 +36,9 @@ public interface AgentRegistry {
      */
     default AgentConfig buildAgentConfig(String agentId) {
         AgentNode node = resolve(agentId);
-        if (node == null) return null;
+        if (node == null) {
+            return null;
+        }
         com.agentmesh.core.protocol.AgentCard card = node.getCard();
         return AgentConfig.builder()
                 .agentId(agentId)

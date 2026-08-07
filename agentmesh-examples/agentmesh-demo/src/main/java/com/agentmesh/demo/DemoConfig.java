@@ -17,20 +17,11 @@ import com.agentmesh.core.task.TaskExecutor;
 import com.agentmesh.core.task.TaskRepository;
 import com.agentmesh.core.tool.Tool;
 import com.agentmesh.core.tool.ToolRegistry;
-import com.agentmesh.rag.DashScopeEmbeddingService;
-import com.agentmesh.rag.EmbeddingService;
-import com.agentmesh.rag.KnowledgeService;
-import com.agentmesh.rag.RagConfig;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -125,64 +116,9 @@ public class DemoConfig {
     @Bean
     public TaskExecutor AgentMeshTaskExecutor(TaskRepository taskRepository,
                                                ConversationStore conversationStore,
-                                               AgentConfig agentConfig) {
-        return new TaskExecutor(taskRepository, conversationStore, agentConfig);
-    }
-
-    // ========== RAG 配置 ==========
-
-    @Bean
-    public RagConfig ragConfig() {
-        return RagConfig.builder()
-                .embeddingApiKey(apiKey)
-                .embeddingModel("text-embedding-v2")
-                .topK(5)
-                .similarityThreshold(0.3)
-                .build();
-    }
-
-    @Bean
-    public EmbeddingService embeddingService(RagConfig ragConfig) {
-        return new DashScopeEmbeddingService(ragConfig);
-    }
-
-    @Bean
-    public KnowledgeService knowledgeService(EmbeddingService embeddingService, RagConfig ragConfig) {
-        return new KnowledgeService(embeddingService, ragConfig);
-    }
-
-    /**
-     * 知识库种子数据加载器（应用启动时自动从 knowledge_seed.json 导入）
-     */
-    @Bean
-    public CommandLineRunner knowledgeSeeder(KnowledgeService knowledgeService) {
-        return args -> {
-            log.info("[KnowledgeSeeder] 开始加载种子数据...");
-            ObjectMapper om = new ObjectMapper();
-            try {
-                ClassPathResource resource = new ClassPathResource("knowledge_seed.json");
-                if (!resource.exists()) {
-                    log.info("[KnowledgeSeeder] 种子数据文件不存在，跳过");
-                    return;
-                }
-                List<Map<String, Object>> items;
-                try (InputStream is = resource.getInputStream()) {
-                    items = om.readValue(is, new TypeReference<>() {});
-                }
-                int added = 0;
-                for (Map<String, Object> item : items) {
-                    String title = (String) item.get("title");
-                    String content = (String) item.get("content");
-                    String category = (String) item.get("category");
-                    Object metadata = item.getOrDefault("metadata", Map.of());
-                    knowledgeService.insert(title, content, category, metadata);
-                    added++;
-                }
-                log.info("[KnowledgeSeeder] 种子数据加载完成，共 {} 条", added);
-            } catch (Exception e) {
-                log.error("[KnowledgeSeeder] 种子数据加载失败: {}", e.getMessage(), e);
-            }
-        };
+                                               AgentConfig agentConfig,
+                                               SequentialAgentOrchestrator.ReActAgentFactory agentFactory) {
+        return new TaskExecutor(taskRepository, conversationStore, agentConfig, agentFactory);
     }
 
     /**

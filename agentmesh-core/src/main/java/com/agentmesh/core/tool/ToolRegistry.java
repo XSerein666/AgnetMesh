@@ -6,8 +6,17 @@ import com.agentmesh.core.llm.ToolDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Tool 注册中心
@@ -21,39 +30,33 @@ public class ToolRegistry {
     private final long executeTimeoutSeconds;
     private final AgentMeshMetrics metrics;
 
+    private static final int DEFAULT_CORE_POOL_SIZE = 2;
+    private static final int DEFAULT_MAX_POOL_SIZE = 10;
+    private static final int DEFAULT_KEEP_ALIVE_SECONDS = 60;
+    private static final long DEFAULT_EXECUTE_TIMEOUT_SECONDS = 30;
+
     public ToolRegistry(List<Tool<?, ?>> toolList) {
-        this(toolList, null, 2, 10, 60, 30);
+        this(toolList, null, DEFAULT_EXECUTE_TIMEOUT_SECONDS);
     }
 
     public ToolRegistry(List<Tool<?, ?>> toolList, long executeTimeoutSeconds) {
-        this(toolList, null, 2, 10, 60, executeTimeoutSeconds);
+        this(toolList, null, executeTimeoutSeconds);
     }
 
     public ToolRegistry(List<Tool<?, ?>> toolList, AgentMeshMetrics metrics) {
-        this(toolList, metrics, 2, 10, 60, 30);
+        this(toolList, metrics, DEFAULT_EXECUTE_TIMEOUT_SECONDS);
     }
 
     public ToolRegistry(List<Tool<?, ?>> toolList, AgentMeshMetrics metrics,
                         long executeTimeoutSeconds) {
-        this(toolList, metrics, 2, 10, 60, executeTimeoutSeconds);
-    }
-
-    public ToolRegistry(List<Tool<?, ?>> toolList, int corePoolSize, int maxPoolSize,
-                        int keepAliveSeconds, long executeTimeoutSeconds) {
-        this(toolList, null, corePoolSize, maxPoolSize, keepAliveSeconds, executeTimeoutSeconds);
-    }
-
-    public ToolRegistry(List<Tool<?, ?>> toolList, AgentMeshMetrics metrics,
-                        int corePoolSize, int maxPoolSize,
-                        int keepAliveSeconds, long executeTimeoutSeconds) {
         for (Tool<?, ?> tool : toolList) {
             tools.put(tool.getId(), tool);
             log.info("[ToolRegistry] 注册 Tool: {}", tool.getId());
         }
         this.toolExecutor = new ThreadPoolExecutor(
-                corePoolSize,
-                maxPoolSize,
-                keepAliveSeconds, TimeUnit.SECONDS,
+                DEFAULT_CORE_POOL_SIZE,
+                DEFAULT_MAX_POOL_SIZE,
+                DEFAULT_KEEP_ALIVE_SECONDS, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 new ThreadPoolExecutor.AbortPolicy()
         );
@@ -220,6 +223,16 @@ public class ToolRegistry {
             }
             return Map.of("error", "工具执行失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 注销（移除）一个工具实例。
+     * 如果 toolId 不存在，静默忽略（不抛异常）。
+     * 新增于 v2.0，用于支持工具市场的卸载操作。
+     */
+    public void unregister(String toolId) {
+        tools.remove(toolId);
+        log.info("[ToolRegistry] 注销 Tool: {}", toolId);
     }
 
     public void shutdown() {

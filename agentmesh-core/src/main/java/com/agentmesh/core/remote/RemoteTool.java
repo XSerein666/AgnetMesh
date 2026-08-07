@@ -26,7 +26,9 @@ public class RemoteTool implements Tool<Map<String, Object>, Object> {
     }
 
     @Override
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
     @Override
     public String getDescription() {
@@ -34,7 +36,9 @@ public class RemoteTool implements Tool<Map<String, Object>, Object> {
     }
 
     @Override
-    public Map<String, Object> getInputSchema() { return skill.getInputSchema(); }
+    public Map<String, Object> getInputSchema() {
+        return skill.getInputSchema();
+    }
 
     @Override
     public Object execute(Map<String, Object> input) {

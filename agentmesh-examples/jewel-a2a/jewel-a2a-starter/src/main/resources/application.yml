@@ -1,0 +1,46 @@
+# ============================================
+# Jewel-A2A 应用配置
+# ============================================
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: jewel-a2a
+
+  # 数据源配置（PostgreSQL + pgvector）
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jewel_a2a}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  # schema.sql 自动执行
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  # 异步任务线程池
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 8
+        queue-capacity: 100
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# DashScope API 配置（后续 Phase 2 使用）
+dashscope:
+  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+
+# 日志级别
+logging:
+  level:
+    com.jewel: DEBUG

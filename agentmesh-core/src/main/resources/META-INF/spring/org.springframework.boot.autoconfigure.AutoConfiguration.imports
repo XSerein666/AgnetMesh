@@ -1,2 +1,7 @@
 com.agentmesh.core.registry.AgentRegistryAutoConfiguration
 com.agentmesh.core.routing.RoutingAutoConfiguration
+com.agentmesh.core.llm.config.LlmAutoConfiguration
+com.agentmesh.core.memory.MemoryAutoConfiguration
+com.agentmesh.core.planning.PlanningAutoConfiguration
+com.agentmesh.core.collaboration.MessageBusAutoConfiguration
+com.agentmesh.core.tool.marketplace.ToolMarketplaceAutoConfiguration

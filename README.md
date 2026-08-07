@@ -195,7 +195,6 @@ agentmesh/
 │   ├── infrastructure/     # 可观测性（指标/traceId）
 │   ├── session/            # 会话管理
 │   └── task/               # 任务管理
-├── agentmesh-rag/          # RAG 知识库模块（仅 GitHub，Beta 阶段）
 └── agentmesh-examples/     # 示例项目（仅 GitHub）
     └── agentmesh-demo/     # 快速体验 Demo
 ```

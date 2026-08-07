@@ -58,7 +58,10 @@ public class PromptTemplateValidator implements ApplicationRunner {
             Resource[] resources = new PathMatchingResourcePatternResolver()
                     .getResources("classpath:/prompts/*.prompt");
             return Arrays.stream(resources)
-                    .map(r -> r.getFilename() != null ? r.getFilename().replace(".prompt", "") : "")
+                    .map(r -> {
+                        String filename = r.getFilename();
+                        return filename != null ? filename.replace(".prompt", "") : "";
+                    })
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toSet());
         } catch (IOException e) {

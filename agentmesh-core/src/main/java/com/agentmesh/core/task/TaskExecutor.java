@@ -2,6 +2,7 @@ package com.agentmesh.core.task;
 
 import com.agentmesh.core.agent.AgentConfig;
 import com.agentmesh.core.agent.ReActAgent;
+import com.agentmesh.core.agent.SequentialAgentOrchestrator;
 import com.agentmesh.core.session.ChatMessage;
 import com.agentmesh.core.session.ConversationStore;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +22,21 @@ public class TaskExecutor {
     private final TaskRepository taskRepository;
     private final ConversationStore conversationStore;
     private final AgentConfig agentConfig;
+    /** Agent 工厂：与编排器保持一致的创建方式。可选，未注入时回退到直接 new ReActAgent */
+    private final SequentialAgentOrchestrator.ReActAgentFactory agentFactory;
 
     public TaskExecutor(TaskRepository taskRepository, ConversationStore conversationStore,
                         AgentConfig agentConfig) {
+        this(taskRepository, conversationStore, agentConfig, null);
+    }
+
+    public TaskExecutor(TaskRepository taskRepository, ConversationStore conversationStore,
+                        AgentConfig agentConfig,
+                        SequentialAgentOrchestrator.ReActAgentFactory agentFactory) {
         this.taskRepository = taskRepository;
         this.conversationStore = conversationStore;
         this.agentConfig = agentConfig;
+        this.agentFactory = agentFactory;
     }
 
     /**
@@ -63,11 +73,13 @@ public class TaskExecutor {
             taskRepository.updateStatus(taskId, TaskStatus.RUNNING, null);
 
             List<ChatMessage> history = conversationStore.getHistory(sessionId);
-            ReActAgent agent = new ReActAgent(
-                    agentConfig.getLlmClient(),
-                    agentConfig.getToolRegistry(),
-                    agentConfig.getMaxLoops()
-            );
+            ReActAgent agent = agentFactory != null
+                    ? agentFactory.create(agentConfig)
+                    : new ReActAgent(
+                            agentConfig.getLlmClient(),
+                            agentConfig.getToolRegistry(),
+                            agentConfig.getMaxLoops()
+                    );
             ReActAgent.AgentResult agentResult = agent.run(
                     agentConfig.getSystemPrompt(), message, history);
 

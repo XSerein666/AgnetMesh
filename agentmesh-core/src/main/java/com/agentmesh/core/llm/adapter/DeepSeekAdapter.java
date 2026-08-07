@@ -7,7 +7,10 @@ import com.agentmesh.core.llm.ToolDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -108,7 +111,9 @@ public class DeepSeekAdapter implements ProviderAdapter {
 
     @Override
     public String normalizeFinishReason(String rawFinishReason) {
-        if (rawFinishReason == null) return "stop";
+        if (rawFinishReason == null) {
+            return "stop";
+        }
         // DeepSeek 可能使用不同的枚举值
         return switch (rawFinishReason) {
             case "stop" -> "stop";

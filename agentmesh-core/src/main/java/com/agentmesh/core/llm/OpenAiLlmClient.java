@@ -1,10 +1,14 @@
 package com.agentmesh.core.llm;
 
+import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.llm.adapter.ProviderAdapter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -16,22 +20,29 @@ import java.util.Map;
  * 支持 chat/completions 端点，原生 function calling
  */
 @Slf4j
-public class OpenAiLlmClient implements LlmClient {
+public class OpenAiLlmClient extends AbstractStreamingLlmClient {
 
     private final String apiKey;
     private final String baseUrl;
     private final String model;
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final ProviderAdapter adapter;
 
     public OpenAiLlmClient(String apiKey, String baseUrl, String model, ProviderAdapter adapter) {
+        this(apiKey, baseUrl, model, adapter, null);
+    }
+
+    public OpenAiLlmClient(String apiKey, String baseUrl, String model,
+                            ProviderAdapter adapter, AgentMeshMetrics metrics) {
+        super(adapter, metrics);
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.model = model;
-        this.adapter = adapter;
         this.restTemplate = createRestTemplate();
-        this.objectMapper = new ObjectMapper();
+    }
+
+    @Override
+    protected String getProvider() {
+        return "openai";
     }
 
     private RestTemplate createRestTemplate() {
@@ -81,6 +92,31 @@ public class OpenAiLlmClient implements LlmClient {
             log.error("[OpenAiLlmClient] 工具调用失败", e);
             throw new RuntimeException("LLM 工具调用失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 流式调用：OpenAI 使用 SSE 格式（data: 前缀 + [DONE] 结束）
+     */
+    @Override
+    public Flux<StreamEvent> chatWithToolsStream(List<Map<String, Object>> messages,
+                                                  List<ToolDefinition> tools,
+                                                  ToolChoice toolChoice) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("messages", messages);
+        if (tools != null && !tools.isEmpty()) {
+            body.put("tools", adapter.adaptTools(tools));
+            body.put("tool_choice", adapter.adaptToolChoice(toolChoice));
+        }
+        body.put("stream", true);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiKey);
+        headers.set("Accept", "text/event-stream");
+
+        String url = baseUrl + "/chat/completions";
+        return doStream(body, url, headers, true, restTemplate);
     }
 
     private String doPost(String url, Map<String, Object> body) throws Exception {

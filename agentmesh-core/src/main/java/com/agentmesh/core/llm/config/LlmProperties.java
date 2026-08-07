@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "agentmesh.llm")
 public class LlmProperties {
-    /** 提供商：dashscope | openai | ollama */
+    /** 提供商：dashscope | openai | ollama | deepseek */
     private String provider = "dashscope";
 
     /** 百炼配置 */
@@ -20,6 +20,9 @@ public class LlmProperties {
 
     /** Ollama 配置 */
     private Ollama ollama = new Ollama();
+
+    /** DeepSeek 配置 */
+    private DeepSeek deepseek = new DeepSeek();
 
     /** 超时配置 */
     private Timeout timeout = new Timeout();
@@ -45,6 +48,13 @@ public class LlmProperties {
     public static class Ollama {
         private String baseUrl = "http://localhost:11434";
         private String model = "qwen2.5";
+    }
+
+    @Data
+    public static class DeepSeek {
+        private String apiKey;
+        private String baseUrl = "https://api.deepseek.com/v1";
+        private String model = "deepseek-chat";
     }
 
     @Data

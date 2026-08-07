@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 记忆提取器。
@@ -32,7 +35,9 @@ public class MemoryExtractor {
      * @return 提取的记忆条目列表，失败时返回空列表
      */
     public List<MemoryItem> extract(String sessionId, List<com.agentmesh.core.session.ChatMessage> history) {
-        if (history.isEmpty()) return List.of();
+        if (history.isEmpty()) {
+            return List.of();
+        }
 
         try {
             String conversation = buildConversationText(history);
@@ -47,10 +52,14 @@ public class MemoryExtractor {
             List<MemoryItem> memoryItems = new ArrayList<>();
             int count = 0;
             for (Map<String, String> item : items) {
-                if (count >= maxItemsPerTurn) break;
+                if (count >= maxItemsPerTurn) {
+                    break;
+                }
                 String type = item.getOrDefault("type", "FACT");
                 String content = item.get("content");
-                if (content == null || content.isEmpty()) continue;
+                if (content == null || content.isEmpty()) {
+                    continue;
+                }
 
                 memoryItems.add(MemoryItem.builder()
                         .id(UUID.randomUUID().toString())

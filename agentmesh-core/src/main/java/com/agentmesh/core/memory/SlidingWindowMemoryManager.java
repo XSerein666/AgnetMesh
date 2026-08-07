@@ -84,7 +84,7 @@ public class SlidingWindowMemoryManager implements MemoryManager {
 
         // 组装：摘要 + 窗口消息
         List<ChatMessage> result = new ArrayList<>();
-        if (summary != null && !summary.isEmpty()) {
+        if (!summary.isEmpty()) {
             result.add(ChatMessage.builder()
                     .role("system")
                     .content("[对话摘要] " + summary)
@@ -98,7 +98,9 @@ public class SlidingWindowMemoryManager implements MemoryManager {
     @Override
     public void compress(String sessionId) {
         List<ChatMessage> history = conversationStore.getHistory(sessionId);
-        if (history.isEmpty()) return;
+        if (history.isEmpty()) {
+            return;
+        }
         triggerSummary(sessionId, history);
     }
 
@@ -115,7 +117,9 @@ public class SlidingWindowMemoryManager implements MemoryManager {
         try {
             List<MemoryItem> items = vectorStore.search(query,
                     properties.getLongTerm().getRetrieval().getTopK());
-            if (items.isEmpty()) return "";
+            if (items.isEmpty()) {
+                return "";
+            }
             StringBuilder sb = new StringBuilder("\n[关于用户的长期记忆]\n");
             for (MemoryItem item : items) {
                 sb.append("- ").append(item.getContent()).append("\n");
@@ -145,9 +149,7 @@ public class SlidingWindowMemoryManager implements MemoryManager {
 
     private void triggerSummary(String sessionId, List<ChatMessage> history) {
         String summary = generateSummary(sessionId, history);
-        if (summary != null) {
-            summaries.put(sessionId, summary);
-        }
+        summaries.put(sessionId, summary);
     }
 
     private String generateSummary(String sessionId, List<ChatMessage> history) {
@@ -188,7 +190,9 @@ public class SlidingWindowMemoryManager implements MemoryManager {
      * 按 Token 数截断消息列表，优先保留后面的消息
      */
     private List<ChatMessage> fitTokens(List<ChatMessage> messages, int maxTokens) {
-        if (messages.isEmpty()) return messages;
+        if (messages.isEmpty()) {
+            return messages;
+        }
 
         int totalTokens = messages.stream()
                 .mapToInt(m -> tokenEstimator.estimateTokens(m.getContent() != null ? m.getContent() : ""))

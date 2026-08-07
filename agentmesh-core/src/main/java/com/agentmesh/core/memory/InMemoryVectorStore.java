@@ -2,7 +2,10 @@ package com.agentmesh.core.memory;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -32,12 +35,18 @@ public class InMemoryVectorStore implements VectorStore {
 
     @Override
     public List<MemoryItem> search(String query, int topK, String sessionId, String type) {
-        if (query == null || query.isEmpty()) return List.of();
+        if (query == null || query.isEmpty()) {
+            return List.of();
+        }
 
         return store.values().stream()
                 .filter(item -> {
-                    if (sessionId != null && !sessionId.equals(item.getSessionId())) return false;
-                    if (type != null && !type.equals(item.getType())) return false;
+                    if (sessionId != null && !sessionId.equals(item.getSessionId())) {
+                        return false;
+                    }
+                    if (type != null && !type.equals(item.getType())) {
+                        return false;
+                    }
                     return true;
                 })
                 .map(item -> {
@@ -68,12 +77,16 @@ public class InMemoryVectorStore implements VectorStore {
      * 简单高效，无需外部 embedding API。
      */
     private double computeSimilarity(String query, String content) {
-        if (content == null || content.isEmpty()) return 0.0;
+        if (content == null || content.isEmpty()) {
+            return 0.0;
+        }
 
         Set<String> queryBigrams = toBigrams(query.toLowerCase());
         Set<String> contentBigrams = toBigrams(content.toLowerCase());
 
-        if (queryBigrams.isEmpty() || contentBigrams.isEmpty()) return 0.0;
+        if (queryBigrams.isEmpty() || contentBigrams.isEmpty()) {
+            return 0.0;
+        }
 
         Set<String> intersection = new HashSet<>(queryBigrams);
         intersection.retainAll(contentBigrams);

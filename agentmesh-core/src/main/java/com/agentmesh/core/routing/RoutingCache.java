@@ -8,7 +8,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -45,7 +47,9 @@ public class RoutingCache {
 
     public Optional<List<RankedAgent>> get(String key) {
         CacheEntry entry = cache.get(key);
-        if (entry == null) return Optional.empty();
+        if (entry == null) {
+            return Optional.empty();
+        }
         if (entry.isExpired()) {
             cache.remove(key);
             return Optional.empty();
@@ -54,7 +58,12 @@ public class RoutingCache {
         return Optional.of(entry.value);
     }
 
-    public void put(String key, List<RankedAgent> value) {
+    /**
+     * 写入缓存。
+     * put + evictOldest 整体加 synchronized，避免并发写时超 maxSize。
+     * 读路径仍无锁，依赖 ConcurrentHashMap 保证可见性。
+     */
+    public synchronized void put(String key, List<RankedAgent> value) {
         if (cache.size() >= maxSize) {
             evictOldest();
         }

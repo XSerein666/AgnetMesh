@@ -1,10 +1,12 @@
 package com.agentmesh.core.agent;
 
+import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.infrastructure.TraceIdContext;
 import com.agentmesh.core.llm.StreamEvent;
 import com.agentmesh.core.remote.AgentClient;
 import com.agentmesh.core.routing.RankedAgent;
 import com.agentmesh.core.routing.RoutingStrategy;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -36,13 +38,22 @@ public class ConditionalOrchestrator implements AgentOrchestrator {
     private final SequentialAgentOrchestrator.ReActAgentFactory agentFactory;
     private final AgentClient agentClient;
     private final RoutingStrategy routingStrategy;
+    private final AgentMeshMetrics metrics;
 
     public ConditionalOrchestrator(SequentialAgentOrchestrator.ReActAgentFactory agentFactory,
                                    AgentClient agentClient,
                                    RoutingStrategy routingStrategy) {
+        this(agentFactory, agentClient, routingStrategy, null);
+    }
+
+    public ConditionalOrchestrator(SequentialAgentOrchestrator.ReActAgentFactory agentFactory,
+                                   AgentClient agentClient,
+                                   RoutingStrategy routingStrategy,
+                                   AgentMeshMetrics metrics) {
         this.agentFactory = agentFactory;
         this.agentClient = agentClient;
         this.routingStrategy = routingStrategy;
+        this.metrics = metrics;
     }
 
     /**
@@ -91,7 +102,25 @@ public class ConditionalOrchestrator implements AgentOrchestrator {
                 ranked.get(0).getAgent().getAgentId(), ranked.get(0).getConfidence(),
                 ranked.size(), traceId);
 
-        return executeWithFailover(ranked, input, traceId, 0);
+        Timer.Sample sample = metrics != null ? metrics.startOrchestrationTimer() : null;
+        String orchestratorType = "conditional";
+
+        return executeWithFailover(ranked, input, traceId, 0)
+                .doOnComplete(() -> recordOrchestrationComplete(orchestratorType, "SUCCESS", sample))
+                .doOnError(e -> {
+                    log.error("[ConditionalOrchestrator] 编排异常, traceId={}", traceId, e);
+                    recordOrchestrationComplete(orchestratorType, "FAILED", sample);
+                });
+    }
+
+    private void recordOrchestrationComplete(String orchestratorType, String status, Timer.Sample sample) {
+        if (metrics == null) {
+            return;
+        }
+        metrics.recordOrchestration(orchestratorType, status);
+        if (sample != null) {
+            metrics.stopOrchestrationTimer(sample, orchestratorType);
+        }
     }
 
     /** 递归执行 + failover。入口已判空，ranked 必有至少 1 个元素。 */
@@ -137,10 +166,13 @@ public class ConditionalOrchestrator implements AgentOrchestrator {
                     if (!isRetryableError(e)) {
                         return Flux.error(e); // 业务错误不透传 failover
                     }
+                    String failedAgentId = current.getAgent().getAgentId();
+                    String nextAgentId = ranked.get(index + 1).getAgent().getAgentId();
                     log.warn("[ConditionalOrchestrator] 可重试错误, failover: failed={}, next={}, error={}, traceId={}",
-                            current.getAgent().getAgentId(),
-                            ranked.get(index + 1).getAgent().getAgentId(),
-                            e.getMessage(), traceId);
+                            failedAgentId, nextAgentId, e.getMessage(), traceId);
+                    if (metrics != null) {
+                        metrics.recordFailover(failedAgentId, nextAgentId);
+                    }
                     return executeWithFailover(ranked, input, traceId, index + 1);
                 });
     }
@@ -152,8 +184,12 @@ public class ConditionalOrchestrator implements AgentOrchestrator {
     private boolean isRetryableError(Throwable e) {
         Throwable cause = e;
         while (cause != null) {
-            if (cause instanceof TimeoutException) return true;
-            if (cause instanceof ConnectException) return true;
+            if (cause instanceof TimeoutException) {
+                return true;
+            }
+            if (cause instanceof ConnectException) {
+                return true;
+            }
             if (cause instanceof WebClientResponseException wcre) {
                 return wcre.getStatusCode().is5xxServerError();
             }

@@ -82,7 +82,9 @@ public class TokenBudgetManager {
      * 简单 Token 估算：中文按字数，英文按字母数字串分词
      */
     public int estimateTokens(String text) {
-        if (text == null || text.isEmpty()) return 0;
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
         int chineseChars = 0;
         int englishWords = 0;
         Matcher wordMatcher = Pattern.compile("[a-zA-Z0-9]+").matcher(text);

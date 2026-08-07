@@ -148,6 +148,7 @@ public class DemoController {
             case SEQUENTIAL  -> sequentialAgentOrchestrator.orchestrateStream(plan, input);
             case CONDITIONAL -> conditionalOrchestrator.orchestrateStream(plan, input);
             case PARALLEL    -> parallelOrchestrator.orchestrateStream(plan, input);
+            case SUPERVISED, DEBATE, SWARM -> sequentialAgentOrchestrator.orchestrateStream(plan, input);
         };
 
         return events.map(event -> {

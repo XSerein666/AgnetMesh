@@ -8,7 +8,10 @@ import com.agentmesh.core.llm.ToolDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -120,7 +123,9 @@ public class DashScopeAdapter implements ProviderAdapter {
 
     @Override
     public String normalizeFinishReason(String rawFinishReason) {
-        if (rawFinishReason == null) return "stop";
+        if (rawFinishReason == null) {
+            return "stop";
+        }
         return switch (rawFinishReason) {
             case "stop" -> "stop";
             case "tool_calls", "function_call" -> "tool_calls";
@@ -133,32 +138,40 @@ public class DashScopeAdapter implements ProviderAdapter {
     @SuppressWarnings("unchecked")
     public StreamEvent adaptStreamChunk(String rawChunk, ObjectMapper mapper) {
         try {
-            log.info("[DashScopeAdapter] 流式原始 chunk: {}", rawChunk);
+            log.debug("[DashScopeAdapter] 流式原始 chunk: {}", rawChunk);
             Map<String, Object> chunk = mapper.readValue(rawChunk, Map.class);
             Map<String, Object> output = (Map<String, Object>) chunk.get("output");
-            if (output == null) return null;
+            if (output == null) {
+                return null;
+            }
 
             List<Map<String, Object>> choices = (List<Map<String, Object>>) output.get("choices");
-            if (choices == null || choices.isEmpty()) return null;
+            if (choices == null || choices.isEmpty()) {
+                return null;
+            }
 
             Map<String, Object> choice = choices.get(0);
             String finishReason = (String) choice.get("finish_reason");
             Map<String, Object> message = (Map<String, Object>) choice.get("message");
-            if (message == null) return null;
+            if (message == null) {
+                return null;
+            }
 
             // 检查 tool_calls
             List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) message.get("tool_calls");
             if (toolCalls != null && !toolCalls.isEmpty()) {
                 Map<String, Object> tc = toolCalls.get(0);
                 Map<String, Object> function = (Map<String, Object>) tc.get("function");
-                if (function == null) return null;
+                if (function == null) {
+                    return null;
+                }
 
                 String name = (String) function.get("name");
                 String arguments = (String) function.get("arguments");
 
                 // 有 name 说明是 tool_call_start（可能同时包含首段 arguments，放在 content 中）
                 if (name != null && !name.isEmpty()) {
-                    log.info("[DashScopeAdapter] 工具调用开始: name={}, id={}, hasArgs={}",
+                    log.debug("[DashScopeAdapter] 工具调用开始: name={}, id={}, hasArgs={}",
                             name, tc.get("id"), arguments != null && !arguments.isEmpty());
                     return StreamEvent.builder()
                             .type(StreamEvent.Type.TOOL_CALL_START)
@@ -178,7 +191,7 @@ public class DashScopeAdapter implements ProviderAdapter {
 
                 // 当 finish_reason 为 tool_calls 且无 arguments 时，发送 TOOL_CALL_END
                 if ("tool_calls".equals(finishReason)) {
-                    log.info("[DashScopeAdapter] 工具调用结束: name={}", name);
+                    log.debug("[DashScopeAdapter] 工具调用结束: name={}", name);
                     return StreamEvent.builder()
                             .type(StreamEvent.Type.TOOL_CALL_END)
                             .toolName(name)

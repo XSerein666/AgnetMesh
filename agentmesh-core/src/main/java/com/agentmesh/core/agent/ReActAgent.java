@@ -1,14 +1,16 @@
 package com.agentmesh.core.agent;
 
-import com.agentmesh.core.agent.*;
 import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.infrastructure.TraceIdContext;
-import com.agentmesh.core.llm.*;
-import com.agentmesh.core.memory.MemoryExtractor;
+import com.agentmesh.core.llm.LlmChatResponse;
+import com.agentmesh.core.llm.LlmClient;
+import com.agentmesh.core.llm.StreamEvent;
+import com.agentmesh.core.llm.ToolCallRequest;
+import com.agentmesh.core.llm.ToolChoice;
+import com.agentmesh.core.llm.ToolDefinition;
+import com.agentmesh.core.llm.TokenEstimator;
 import com.agentmesh.core.memory.MemoryManager;
-import com.agentmesh.core.memory.VectorStore;
 import com.agentmesh.core.planning.PlanExecutor;
-import com.agentmesh.core.planning.PlanResult;
 import com.agentmesh.core.planning.TaskPlanner;
 import com.agentmesh.core.session.ChatMessage;
 import com.agentmesh.core.tool.ToolRegistry;
@@ -17,8 +19,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-import java.util.*;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * ReAct 引擎：推理 → 行动 → 观察 → 推理 ...
@@ -160,6 +166,9 @@ public class ReActAgent {
 
                         return buildResult(response, toolCalls);
                     }
+                    default -> {
+                        // 无效状态，忽略
+                    }
                 }
             }
         }
@@ -231,7 +240,9 @@ public class ReActAgent {
      * Phase 15：对话后处理 — 追加到 MemoryManager + 提取长期记忆
      */
     private void postProcess(String userMessage, String reply) {
-        if (memoryManager == null) return;
+        if (memoryManager == null) {
+            return;
+        }
 
         try {
             memoryManager.append("default", ChatMessage.builder()
@@ -247,18 +258,24 @@ public class ReActAgent {
      * Phase 15：判断是否为复杂任务
      */
     private boolean isComplexTask(String userMessage) {
-        if (userMessage == null) return false;
+        if (userMessage == null) {
+            return false;
+        }
         String msg = userMessage.toLowerCase();
         String[] complexKeywords = {"规划", "安排", "流程", "步骤", "计划", "方案", "攻略",
                 "plan", "schedule", "step", "workflow"};
         for (String keyword : complexKeywords) {
-            if (msg.contains(keyword)) return true;
+            if (msg.contains(keyword)) {
+                return true;
+            }
         }
         return userMessage.length() > 200;
     }
 
     private String buildContextFromHistory(List<ChatMessage> history) {
-        if (history == null || history.isEmpty()) return "";
+        if (history == null || history.isEmpty()) {
+            return "";
+        }
         StringBuilder sb = new StringBuilder();
         for (ChatMessage msg : history) {
             if (!"system".equals(msg.getRole())) {
@@ -347,6 +364,9 @@ public class ReActAgent {
                             case TOOL_CALL_END -> {
                                 String toolName = pendingToolName[0] != null
                                         ? pendingToolName[0] : event.getToolName();
+                                // 使用后重置 pending 状态，避免 DONE 事件误触发工具执行
+                                pendingToolName[0] = null;
+                                pendingToolCallId[0] = null;
                                 // 优先使用累积的参数，其次使用 event 中的参数
                                 Map<String, Object> args = event.getArguments();
                                 if (args == null || args.isEmpty()) {
@@ -421,8 +441,10 @@ public class ReActAgent {
                                 }
                                 return Flux.just(event);
                             }
+                            default -> {
+                                return Flux.just(event);
+                            }
                         }
-                        return Flux.just(event);
                     });
             return Flux.concat(thinking, llmStream);
         } else {

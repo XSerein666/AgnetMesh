@@ -1,5 +1,7 @@
 package com.agentmesh.core.agent;
 
+import com.agentmesh.core.collaboration.MessageBus;
+import com.agentmesh.core.collaboration.SharedContext;
 import com.agentmesh.core.llm.LlmClient;
 import com.agentmesh.core.prompt.PromptTemplateEngine;
 import com.agentmesh.core.protocol.AgentSkill;
@@ -8,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -50,6 +53,23 @@ public class AgentConfig {
     private boolean retryable = false;
     /** Agent 的 skills 列表（供 LLM 精排渲染 name/description/inputSchema） */
     private List<AgentSkill> skills;
+
+    // ========== Phase 1.1：多 Agent 协作字段 ==========
+
+    /** Agent 角色（supervisor / worker / reviewer / debater）。
+     *  null 表示平级 Agent（向后兼容），但无权限写入受保护的 SharedContext 前缀。 */
+    @Builder.Default
+    private String role = null;
+
+    /** 可委派的 Agent ID 列表（仅 supervisor 有效） */
+    @Builder.Default
+    private List<String> delegateTo = Collections.emptyList();
+
+    /** 共享上下文（多个 Agent 共享），由编排器注入 */
+    private SharedContext sharedContext;
+
+    /** 消息总线（Agent 间通信通道），由编排器注入 */
+    private MessageBus messageBus;
 
     /**
      * 解析最终的系统提示词

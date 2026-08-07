@@ -103,7 +103,6 @@ agentmesh/
 │   ├── session/            # 会话管理
 │   ├── task/               # 任务管理
 │   └── prompt/             # Prompt 模板
-├── agentmesh-rag/          # RAG 知识库模块
 └── agentmesh-examples/     # 示例项目
 ```
 

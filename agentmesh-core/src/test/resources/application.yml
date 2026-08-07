@@ -1,0 +1,23 @@
+agentmesh:
+  llm:
+    openai:
+      api-key: test-key
+      base-url: http://localhost:8080
+      model: test-model
+  registry:
+    peers:
+      - http://localhost:9999
+  remote:
+    timeout: 15s
+    poll-interval: 1s
+    stream-timeout: 30s
+  routing:
+    enabled: true
+    keyword:
+      enabled: true
+    llm:
+      enabled: false
+  memory:
+    enabled: false
+  planning:
+    enabled: false

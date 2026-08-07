@@ -1,10 +1,14 @@
 package com.agentmesh.core.llm;
 
+import com.agentmesh.core.infrastructure.AgentMeshMetrics;
 import com.agentmesh.core.llm.adapter.ProviderAdapter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -16,20 +20,26 @@ import java.util.Map;
  * 支持 /api/chat 端点，部分模型支持原生 function calling
  */
 @Slf4j
-public class OllamaLlmClient implements LlmClient {
+public class OllamaLlmClient extends AbstractStreamingLlmClient {
 
     private final String baseUrl;
     private final String model;
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final ProviderAdapter adapter;
 
     public OllamaLlmClient(String baseUrl, String model, ProviderAdapter adapter) {
+        this(baseUrl, model, adapter, null);
+    }
+
+    public OllamaLlmClient(String baseUrl, String model, ProviderAdapter adapter, AgentMeshMetrics metrics) {
+        super(adapter, metrics);
         this.baseUrl = baseUrl;
         this.model = model;
-        this.adapter = adapter;
         this.restTemplate = createRestTemplate();
-        this.objectMapper = new ObjectMapper();
+    }
+
+    @Override
+    protected String getProvider() {
+        return "ollama";
     }
 
     private RestTemplate createRestTemplate() {
@@ -82,6 +92,30 @@ public class OllamaLlmClient implements LlmClient {
             log.error("[OllamaLlmClient] 工具调用失败", e);
             throw new RuntimeException("LLM 工具调用失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 流式调用：Ollama 使用 NDJSON 格式（每行完整 JSON，无 data: 前缀，无 [DONE]）
+     */
+    @Override
+    public Flux<StreamEvent> chatWithToolsStream(List<Map<String, Object>> messages,
+                                                  List<ToolDefinition> tools,
+                                                  ToolChoice toolChoice) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("messages", messages);
+        if (tools != null && !tools.isEmpty()) {
+            body.put("tools", adapter.adaptTools(tools));
+        }
+        body.put("stream", true);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Accept", "application/x-ndjson");
+
+        String url = baseUrl + "/api/chat";
+        // sseFormat=false 表示 NDJSON 格式
+        return doStream(body, url, headers, false, restTemplate);
     }
 
     private String doPost(String url, Map<String, Object> body) throws Exception {

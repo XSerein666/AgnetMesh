@@ -94,8 +94,12 @@ public class AbRoutingStrategy implements RoutingStrategy {
      * 双方都空不计入 match（两个策略都路由失败时恰恰最该报警）。
      */
     private String classifyConsistency(List<RankedAgent> a, List<RankedAgent> b) {
-        if (a.isEmpty() && b.isEmpty()) return "both_empty";
-        if (a.isEmpty() || b.isEmpty()) return "mismatch";
+        if (a.isEmpty() && b.isEmpty()) {
+            return "both_empty";
+        }
+        if (a.isEmpty() || b.isEmpty()) {
+            return "mismatch";
+        }
         return a.get(0).getAgent().getAgentId()
                 .equals(b.get(0).getAgent().getAgentId()) ? "match" : "mismatch";
     }
@@ -120,7 +124,9 @@ public class AbRoutingStrategy implements RoutingStrategy {
         Set<String> union = new HashSet<>(setA);
         union.addAll(setB);
 
-        if (union.isEmpty()) return 1.0;
+        if (union.isEmpty()) {
+            return 1.0;
+        }
         return (double) intersection.size() / union.size();
     }
 }

@@ -1,13 +1,17 @@
 package com.agentmesh.core.llm.adapter;
 
 import com.agentmesh.core.llm.LlmChatResponse;
+import com.agentmesh.core.llm.StreamEvent;
 import com.agentmesh.core.llm.ToolCallRequest;
 import com.agentmesh.core.llm.ToolChoice;
 import com.agentmesh.core.llm.ToolDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -105,12 +109,91 @@ public class OllamaAdapter implements ProviderAdapter {
 
     @Override
     public String normalizeFinishReason(String rawFinishReason) {
-        if (rawFinishReason == null) return "stop";
+        if (rawFinishReason == null) {
+            return "stop";
+        }
         return switch (rawFinishReason) {
             case "stop" -> "stop";
             case "tool_calls", "function_call" -> "tool_calls";
             case "length" -> "length";
             default -> "stop";
         };
+    }
+
+    /**
+     * Ollama 流式格式：每行一个完整 JSON（NDJSON，无 data: 前缀）。
+     *   {"message":{"content":"..."},"done":false}
+     *   {"message":{},"done":true,"done_reason":"stop"}
+     *
+     * 工具调用：Ollama 在最终行一次性返回完整 tool_calls，无流式增量。
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public StreamEvent adaptStreamChunk(String rawChunk, ObjectMapper mapper) {
+        try {
+            Map<String, Object> chunk = mapper.readValue(rawChunk, Map.class);
+            Map<String, Object> message = (Map<String, Object>) chunk.get("message");
+            if (message == null) {
+                return null;
+            }
+
+            // 文本内容增量
+            String content = (String) message.get("content");
+            if (content != null && !content.isEmpty()) {
+                return StreamEvent.builder()
+                        .type(StreamEvent.Type.TEXT)
+                        .content(content)
+                        .build();
+            }
+
+            // 工具调用（完整返回）
+            List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) message.get("tool_calls");
+            if (toolCalls != null && !toolCalls.isEmpty()) {
+                Map<String, Object> tc = toolCalls.get(0);
+                Map<String, Object> function = (Map<String, Object>) tc.get("function");
+                if (function == null) {
+                    return null;
+                }
+
+                String name = (String) function.get("name");
+                String arguments = (String) function.get("arguments");
+
+                Map<String, Object> argsMap = null;
+                if (arguments != null && !arguments.isEmpty()) {
+                    try {
+                        argsMap = mapper.readValue(arguments, Map.class);
+                    } catch (Exception e) {
+                        log.debug("[OllamaAdapter] arguments 不是合法 JSON，留给上层累积解析: {}", e.getMessage());
+                    }
+                }
+
+                // Ollama 一次性返回完整调用，发 START（带完整参数）
+                // END 由 done=true + done_reason=tool_calls 时发送
+                return StreamEvent.builder()
+                        .type(StreamEvent.Type.TOOL_CALL_START)
+                        .toolName(name)
+                        .content(arguments)
+                        .arguments(argsMap)
+                        .build();
+            }
+
+            // done=true 时判断是否需要发 TOOL_CALL_END
+            boolean done = Boolean.TRUE.equals(chunk.get("done"));
+            if (done) {
+                String doneReason = (String) chunk.get("done_reason");
+                if ("tool_calls".equals(normalizeFinishReason(doneReason))) {
+                    return StreamEvent.builder()
+                            .type(StreamEvent.Type.TOOL_CALL_END)
+                            .build();
+                }
+                // done=true 无特殊原因，返回 null，由 doStream 末尾统一发 DONE
+                return null;
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.warn("[OllamaAdapter] 流式 chunk 解析失败: {}", rawChunk, e);
+            return null;
+        }
     }
 }
