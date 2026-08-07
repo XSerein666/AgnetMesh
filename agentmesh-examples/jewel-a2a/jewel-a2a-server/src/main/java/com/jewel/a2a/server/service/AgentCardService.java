@@ -2,23 +2,27 @@ package com.jewel.a2a.server.service;
 
 import com.agentmesh.core.protocol.AgentCard;
 import com.agentmesh.core.protocol.AgentSkill;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * 构建 Agent 名片
+ * Agent 名片 Bean 提供者。
+ * Phase 4：改为 @Configuration + @Bean，供 AgentRegistryAutoConfiguration 自动装配。
  */
-@Service
+@Configuration
 public class AgentCardService {
 
-    public AgentCard buildAgentCard() {
+    @Bean
+    public AgentCard agentCard() {
         return AgentCard.builder()
                 .agentId("jewel-a2a")
                 .name("Jewel-A2A 珠宝定制智能体")
-                .description("珠宝定制灵感生成与工艺可行性校验智能体")
-                .version("1.0.0")
+                .description("珠宝定制灵感生成与工艺可行性校验智能体，支持多 Agent 协作（设计师/工艺师/审核员）")
+                .version("2.0.0")
+                .url("http://localhost:8080")
                 .skills(buildSkills())
                 .build();
     }

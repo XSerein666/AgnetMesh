@@ -4,4 +4,4 @@ com.agentmesh.core.llm.config.LlmAutoConfiguration
 com.agentmesh.core.memory.MemoryAutoConfiguration
 com.agentmesh.core.planning.PlanningAutoConfiguration
 com.agentmesh.core.collaboration.MessageBusAutoConfiguration
-com.agentmesh.core.tool.marketplace.ToolMarketplaceAutoConfiguration
+com.agentmesh.core.tool.marketplace.config.ToolMarketplaceAutoConfiguration

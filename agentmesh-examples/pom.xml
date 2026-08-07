@@ -21,7 +21,6 @@
     </properties>
 
     <modules>
-        <module>agentmesh-demo</module>
         <module>jewel-a2a</module>
     </modules>
 

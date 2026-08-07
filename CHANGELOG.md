@@ -2,6 +2,22 @@
 
 All notable changes to AgentMesh will be documented in this file.
 
+## [1.1.0] - Unreleased
+
+### Added
+
+- 记忆管理：滑动窗口记忆（SlidingWindowMemoryManager）+ 向量存储（InMemoryVectorStore）
+- 任务规划：LLM 任务分解（LlmTaskPlanner）+ DAG 执行引擎（DagPlanExecutor）
+- 多 Agent 协作：Swarm 协作、Debate 辩论、Supervisor-Worker 监督模式
+- 工具市场：工具安装/卸载、健康检查、版本管理、审批策略、MCP 工具执行器
+- SequentialAgentOrchestrator：基于 Prompt 模板的多 Agent 串联流水线
+- ConditionalOrchestrator：条件路由编排器
+- 消息总线：Agent 间消息传递（InMemoryMessageBus）
+- 工作流状态持久化（FileWorkflowStateStore）
+- 审批门控（ApprovalGate）
+- 知识块管理（KnowledgeChunk）
+- Token 预算管理器（TokenBudgetManager）
+
 ## [1.0.0] - Unreleased
 
 ### Added

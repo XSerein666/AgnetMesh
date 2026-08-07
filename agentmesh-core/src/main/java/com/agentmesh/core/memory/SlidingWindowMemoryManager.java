@@ -131,6 +131,13 @@ public class SlidingWindowMemoryManager implements MemoryManager {
         }
     }
 
+    @Override
+    public void clear(String sessionId) {
+        conversationStore.clear(sessionId);
+        summaries.remove(sessionId);
+        log.info("[MemoryManager] 会话记忆已清除: sessionId={}", sessionId);
+    }
+
     /**
      * 获取记忆提取器（供外部在对话结束后调用）
      */

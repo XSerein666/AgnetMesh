@@ -2,27 +2,23 @@ package com.jewel.a2a.server.tool;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.agentmesh.core.llm.LlmClient;
 import com.agentmesh.core.tool.Tool;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Tool 1：珠宝图片分析（调用 DashScope qwen-vl-plus）
+ * Tool 1：珠宝图片分析（使用 AgentMesh LlmClient.vision()）
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AnalyzeImageTool implements Tool<Map<String, Object>, Object> {
-
-    private static final String API_URL =
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation";
-    private static final String MODEL = "qwen-vl-plus";
 
     private static final String ANALYSIS_PROMPT = """
             你是一位资深珠宝鉴定师和设计师。请分析这张珠宝图片，从以下维度给出详细报告：
@@ -44,11 +40,8 @@ public class AnalyzeImageTool implements Tool<Map<String, Object>, Object> {
               "evaluation": "整体评价"
             }""";
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Value("${dashscope.api-key}")
-    private String apiKey;
+    private final LlmClient llmClient;
 
     @Override
     public String getId() {
@@ -77,8 +70,21 @@ public class AnalyzeImageTool implements Tool<Map<String, Object>, Object> {
         log.info("[AnalyzeImageTool] 开始分析, imageUrl={}", imageUrl);
 
         try {
-            String aiResponse = callVisionAPI(imageUrl);
-            Map<String, Object> result = objectMapper.readValue(aiResponse,
+            // 使用 AgentMesh 统一 Vision 接口
+            String aiResponse = llmClient.vision(imageUrl, ANALYSIS_PROMPT);
+
+            // 清洗 markdown 标记
+            String text = aiResponse.trim();
+            if (text.startsWith("```json")) {
+                text = text.substring(7);
+            } else if (text.startsWith("```")) {
+                text = text.substring(3);
+            }
+            if (text.endsWith("```")) {
+                text = text.substring(0, text.length() - 3);
+            }
+
+            Map<String, Object> result = objectMapper.readValue(text.trim(),
                     new TypeReference<Map<String, Object>>() {});
             log.info("[AnalyzeImageTool] 分析完成, stoneType={}, style={}",
                     result.get("stoneType"), result.get("style"));
@@ -89,55 +95,5 @@ public class AnalyzeImageTool implements Tool<Map<String, Object>, Object> {
             result.put("error", e.getMessage());
             return result;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private String callVisionAPI(String imageUrl) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
-
-        // system message
-        Map<String, Object> systemMsg = new LinkedHashMap<>();
-        systemMsg.put("role", "system");
-        systemMsg.put("content", List.of(
-                Map.of("text", "你是一位珠宝鉴定师，请用JSON格式回答。")
-        ));
-
-        // user message（图片 + 文字）
-        Map<String, Object> userMsg = new LinkedHashMap<>();
-        userMsg.put("role", "user");
-        userMsg.put("content", List.of(
-                Map.of("image", imageUrl),
-                Map.of("text", ANALYSIS_PROMPT)
-        ));
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", MODEL);
-        Map<String, Object> inputParam = new LinkedHashMap<>();
-        inputParam.put("messages", List.of(systemMsg, userMsg));
-        body.put("input", inputParam);
-
-        HttpEntity<String> request = new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(API_URL, request, String.class);
-
-        Map<String, Object> respBody = objectMapper.readValue(response.getBody(), Map.class);
-        Map<String, Object> output = (Map<String, Object>) respBody.get("output");
-        List<Map<String, Object>> choices = (List<Map<String, Object>>) output.get("choices");
-        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-        List<Map<String, Object>> content = (List<Map<String, Object>>) message.get("content");
-        String text = (String) content.get(0).get("text");
-
-        // 清洗 markdown 标记
-        text = text.trim();
-        if (text.startsWith("```json")) {
-            text = text.substring(7);
-        } else if (text.startsWith("```")) {
-            text = text.substring(3);
-        }
-        if (text.endsWith("```")) {
-            text = text.substring(0, text.length() - 3);
-        }
-        return text.trim();
     }
 }

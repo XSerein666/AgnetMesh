@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jewel-A2A | 星语珠宝顾问</title>
+<style>
+/* ===== CSS Variables ===== */
+:root {
+    --gold: #b8860b;
+    --gold-light: rgba(184, 134, 11, 0.12);
+    --bg-page: #f8f8f8;
+    --bg-white: #fff;
+    --bg-sidebar: #fafafa;
+    --text-dark: #222;
+    --text-primary: #333;
+    --text-secondary: #555;
+    --text-muted: #999;
+    --text-light: #bbb;
+    --border: #eee;
+    --border-light: #e5e5e5;
+    --bubble-user: #222;
+    --bubble-user-text: #fff;
+    --font-mono: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --max-width: 900px;
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-sidebar);
+}
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.sidebar-logo { width: 22px; height: 22px; flex-shrink: 0; object-fit: contain; }
+.sidebar-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dark);
+    letter-spacing: 1px;
+    flex: 1;
+}
+.btn-new-chat {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #000; color: #fff;
+    border: none; cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.btn-new-chat:hover { background: #333; }
+.btn-new-chat svg { pointer-events: none; }
+.conversation-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+.conversation-list::-webkit-scrollbar { width: 3px; }
+.conversation-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+.conv-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+}
+.conv-item:hover { background: #f0f0f0; }
+.conv-item.active {
+    background: var(--bg-white);
+    border-left-color: var(--gold);
+}
+.conv-title {
+    font-size: 14px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1;
+}
+.btn-delete {
+    opacity: 0; background: none; border: none;
+    color: #999; font-size: 14px; cursor: pointer;
+    padding: 2px 4px; flex-shrink: 0;
+    transition: opacity 0.15s;
+}
+.conv-item:hover .btn-delete { opacity: 1; }
+.btn-delete:hover { color: #c00; }
+.conv-empty {
+    text-align: center; color: var(--text-light);
+    font-size: 14px; padding: 40px 16px;
+}
+
+/* ===== Chat Main ===== */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-white);
+    min-width: 0;
+    min-height: 0;
+    border-radius: 16px;
+}
+
+/* ===== Header ===== */
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.header-icon { width: 20px; height: 20px; flex-shrink: 0; object-fit: contain; }
+.header-title {
+    font-size: 16px; font-weight: 600;
+    color: #000; letter-spacing: 1px;
+}
+.header-subtitle { font-size: 12px; color: var(--text-muted); }
+
+/* Agent Selector */
+.agent-selector { display: flex; gap: 6px; }
+.agent-btn {
+    padding: 4px 12px; border: 1px solid var(--border-light);
+    border-radius: 16px; background: var(--bg-white);
+    font-size: 12px; cursor: pointer; color: var(--text-secondary);
+    transition: all 0.2s;
+}
+.agent-btn:hover { border-color: var(--gold); color: var(--gold); }
+.agent-btn.active {
+    background: var(--gold); color: #fff;
+    border-color: var(--gold);
+}
+
+/* ===== Messages Area ===== */
+.messages-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 32px 40px;
+    scroll-behavior: smooth;
+    max-width: var(--max-width);
+    width: 100%;
+    margin: 0 auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.messages-area::-webkit-scrollbar { display: none; }
+
+/* Welcome */
+.welcome {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; text-align: center;
+}
+.welcome-icon { width: 56px; height: 56px; margin-bottom: 16px; object-fit: contain; }
+.welcome-title {
+    font-size: 20px; font-weight: 600;
+    color: var(--text-dark); margin: 0 0 8px;
+    letter-spacing: 1px;
+}
+.welcome-desc {
+    font-size: 14px; color: var(--text-muted);
+    margin: 0 0 32px;
+}
+.quick-questions {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; max-width: 500px;
+}
+.quick-btn {
+    padding: 10px 18px; border: 1px solid var(--border-light);
+    background: var(--bg-white); color: var(--text-primary);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s;
+}
+.quick-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ===== Messages ===== */
+.message-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.3s ease;
+}
+.message-row.user { flex-direction: row-reverse; }
+.message-row.user.has-image { flex-direction: column; align-items: flex-end; }
+
+/* User bubble */
+.message-row.user .msg-bubble {
+    max-width: 60%;
+    background: var(--bubble-user);
+    color: var(--bubble-user-text);
+    padding: 6px 16px;
+    border-radius: 16px;
+    border-bottom-right-radius: 4px;
+    font-size: 14px;
+    line-height: 1.7;
+    word-break: break-word;
+}
+.msg-images {
+    display: flex; flex-direction: column; gap: 8px;
+    max-width: 60%;
+}
+.msg-images img {
+    width: 100%; max-height: 200px; object-fit: cover;
+    border-radius: 16px; border-bottom-right-radius: 4px;
+    cursor: pointer;
+}
+
+/* AI bubble: article style, no background */
+.message-row.assistant .msg-bubble {
+    flex: 1;
+    padding: 0;
+    background: transparent;
+    color: var(--text-primary);
+}
+
+/* AI header */
+.msg-header {
+    margin-bottom: 16px;
+}
+.msg-header-row {
+    display: flex; align-items: center; gap: 8px;
+}
+.msg-header-logo { width: 18px; height: 18px; flex-shrink: 0; object-fit: contain; }
+.msg-header-name {
+    font-size: 14px; font-weight: 600;
+    color: #111; letter-spacing: 0.5px;
+}
+.msg-header-sub {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 4px; padding-left: 26px;
+}
+.msg-header-divider {
+    border: none; border-top: 1px solid var(--border-light);
+    margin: 10px 0 0;
+}
+
+/* AI text */
+.msg-text {
+    font-size: 15px; line-height: 1.85; color: var(--text-dark);
+}
+.msg-text h2 { font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #111; }
+.msg-text h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; color: var(--text-primary); }
+.msg-text p { margin: 0 0 10px; }
+.msg-text ul, .msg-text ol { padding-left: 20px; margin: 8px 0; }
+.msg-text li { margin-bottom: 4px; }
+.msg-text strong { color: #111; font-weight: 600; }
+.msg-text code {
+    background: #f3f3f3; padding: 2px 6px;
+    border-radius: 4px; font-size: 13px;
+    color: var(--gold); font-family: var(--font-mono);
+}
+.msg-text table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 14px;
+}
+.msg-text th, .msg-text td {
+    border: 1px solid var(--border-light);
+    padding: 8px 12px; text-align: left;
+}
+.msg-text th { background: #f8f8f8; font-weight: 600; }
+.msg-text img {
+    max-width: 400px; border-radius: 12px;
+    margin: 12px 0; cursor: pointer;
+}
+.msg-time {
+    display: block; font-size: 11px; color: var(--text-light);
+    margin-top: 6px;
+}
+.message-row.user .msg-time {
+    color: rgba(255,255,255,0.5);
+    text-align: right;
+}
+
+/* Error */
+.msg-bubble.error {
+    color: #cf1322 !important;
+    font-style: italic;
+}
+.msg-bubble.error .retry-btn {
+    margin-top: 8px; padding: 4px 12px;
+    border: 1px solid #cf1322; border-radius: 12px;
+    font-size: 12px; color: #cf1322; background: #fff;
+    cursor: pointer; font-style: normal;
+}
+
+/* Tool badge */
+.tool-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 10px; font-size: 11px;
+    background: #fdf6e3; color: var(--gold);
+    margin-right: 6px;
+}
+
+/* ===== Typing ===== */
+.msg-typing {
+    display: flex; gap: 6px; padding: 0;
+}
+.typing-dot {
+    width: 8px; height: 8px;
+    background: var(--text-light);
+    border-radius: 50%;
+    animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
+
+/* Streaming cursor */
+.typing-cursor::after {
+    content: '▌';
+    animation: blink 0.8s infinite;
+    color: var(--gold);
+}
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* ===== Input Area ===== */
+.input-area {
+    position: relative; z-index: 1;
+    padding: 16px 24px 24px; flex-shrink: 0;
+}
+.input-wrapper {
+    position: relative; background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: 24px; padding: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    max-width: var(--max-width); margin: 0 auto;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.input-wrapper:focus-within {
+    box-shadow: 0 2px 16px var(--gold-light);
+    border-color: rgba(184, 134, 11, 0.3);
+}
+.input-wrapper.is-image-mode {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px var(--gold-light);
+}
+
+/* Image preview */
+.image-preview-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; flex-wrap: wrap;
+}
+.preview-item {
+    position: relative; display: inline-flex;
+}
+.preview-thumb {
+    width: 56px; height: 56px;
+    object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--border-light);
+}
+.preview-remove {
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); color: #fff;
+    border: none; border-radius: 50%;
+    cursor: pointer; font-size: 10px;
+    transition: background 0.15s;
+}
+.preview-remove:hover { background: rgba(0,0,0,0.8); }
+
+.input-row {
+    display: flex; gap: 8px; align-items: flex-end;
+    padding: 0 8px;
+}
+.chat-input {
+    flex: 1; min-width: 0; min-height: 24px; max-height: 160px;
+    padding: 5px 12px; background: transparent;
+    border: none; font-size: 14px; font-family: inherit;
+    line-height: 1.5; color: var(--text-primary);
+    outline: none; resize: none; overflow-y: auto;
+    word-break: break-word; scrollbar-width: thin;
+    box-sizing: border-box;
+}
+.chat-input::-webkit-scrollbar { width: 4px; }
+.chat-input::-webkit-scrollbar-thumb { background: #d5d5d5; border-radius: 2px; }
+.chat-input::placeholder { color: var(--text-muted); }
+.chat-input:disabled { color: var(--text-muted); }
+
+.quick-actions {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px 0; margin-top: 10px;
+}
+.actions-spacer { flex: 1; }
+
+/* Upload popover */
+.upload-popover-wrap { position: relative; }
+.upload-popover {
+    display: none;
+    position: absolute; bottom: 42px; left: 0;
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: 12px; padding: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    z-index: 10; min-width: 150px;
+}
+.upload-popover.show { display: block; }
+.upload-popover-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; cursor: pointer;
+    border-radius: 8px; transition: background 0.2s;
+    font-size: 14px; color: var(--text-primary);
+}
+.upload-popover-item:hover { background: #f5f5f5; }
+.upload-popover-item svg { flex-shrink: 0; }
+
+.action-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; background: none; border: none;
+    color: #666; font-size: 14px; cursor: pointer;
+    border-radius: 6px; transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.action-btn:hover { background: #f5f5f5; color: var(--text-primary); }
+.action-btn:active { transform: scale(0.95); }
+.action-btn.active { background: #f5f5f5; color: var(--text-muted); }
+
+.add-btn {
+    width: 24px; height: 24px; padding: 0;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    background: none; border: none;
+    color: #666; cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+.add-btn:hover { background: #e8e8e8; transform: scale(1.3); }
+.add-btn:active { transform: scale(1.1); }
+.add-btn svg { pointer-events: none; }
+
+.btn-send {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: #ccc; color: #fff;
+    border: none; border-radius: 50%;
+    cursor: pointer; transition: background 0.2s;
+    flex-shrink: 0;
+}
+.btn-send:not(:disabled) { background: #000; }
+.btn-send:not(:disabled):hover { background: #333; }
+.btn-send:disabled { cursor: not-allowed; }
+.btn-send img { pointer-events: none; }
+
+.btn-stop {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: #000; color: #fff;
+    border: none; border-radius: 50%;
+    cursor: pointer; transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+.btn-stop:hover { background: #333; transform: scale(1.1); }
+.btn-stop img { filter: invert(1); pointer-events: none; }
+
+/* ===== File input (hidden) ===== */
+#fileInput, #docInput { display: none; }
+
+/* ===== Scroll to bottom ===== */
+.scroll-bottom-btn {
+    position: fixed; bottom: 160px; right: 32px;
+    width: 36px; height: 36px;
+    border-radius: 50%; background: var(--bg-white);
+    border: 1px solid var(--border-light); cursor: pointer;
+    font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: none; align-items: center; justify-content: center;
+    z-index: 5; color: var(--text-secondary);
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 767px) {
+    .sidebar { display: none; }
+    .chat-main { border-radius: 0; }
+    .chat-header { padding: 12px 16px; }
+    .header-subtitle { display: none; }
+    .agent-selector { gap: 4px; }
+    .agent-btn { padding: 3px 8px; font-size: 11px; }
+    .messages-area { padding: 20px 16px; }
+    .message-row.user .msg-bubble { max-width: 85%; }
+    .msg-text img { max-width: 100% !important; }
+    .input-area { padding: 12px 16px 16px; }
+    .chat-input { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <img src="agnet/Voice%20of%20Stars.svg" class="sidebar-logo" alt="Voice of Stars">
+        <span class="sidebar-title">Jewel-A2A</span>
+        <button class="btn-new-chat" onclick="handleNewChat()" title="新会话">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+        </button>
+    </div>
+    <div class="conversation-list" id="conversationList">
+        <div class="conv-empty">暂无会话</div>
+    </div>
+</aside>
+
+<!-- Chat Main -->
+<main class="chat-main">
+    <!-- Header -->
+    <header class="chat-header">
+        <div class="header-left">
+            <img src="agnet/Voice%20of%20Stars.svg" class="header-icon" alt="Voice of Stars">
+            <span class="header-title">星语 · 珠宝顾问</span>
+        </div>
+        <span class="header-subtitle">有任何珠宝问题，随时问我</span>
+        <div class="agent-selector" id="agentSelector">
+            <button class="agent-btn active" data-agent="">Auto</button>
+            <button class="agent-btn" data-agent="designer">设计师</button>
+            <button class="agent-btn" data-agent="crafter">工艺师</button>
+            <button class="agent-btn" data-agent="auditor">审核员</button>
+        </div>
+    </header>
+
+    <!-- Messages -->
+    <div class="messages-area" id="messagesArea">
+        <!-- Welcome -->
+        <div class="welcome" id="welcomeBlock">
+            <img src="agnet/Voice%20of%20Stars.svg" class="welcome-icon" alt="Voice of Stars">
+            <h2 class="welcome-title">欢迎来到 Jewel-A2A 珠宝顾问</h2>
+            <p class="welcome-desc">我可以帮您分析珠宝图片、生成设计图、校验工艺可行性、检索珠宝知识</p>
+            <div class="quick-questions">
+                <button class="quick-btn" onclick="sendQuickQuestion('18K金和铂金有什么区别？')">18K金和铂金有什么区别？</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('钻石怎么选？')">钻石怎么选？</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('设计一枚玫瑰金钻戒')">设计一枚玫瑰金钻戒</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('定制珠宝的流程是什么？')">定制珠宝的流程是什么？</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll to bottom -->
+    <button class="scroll-bottom-btn" id="scrollBottomBtn" onclick="scrollToBottom()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+    </button>
+
+    <!-- Input Area -->
+    <div class="input-area">
+        <div class="input-wrapper" id="inputWrapper">
+            <div class="image-preview-bar" id="imagePreviewBar"></div>
+            <div class="input-row">
+                <textarea
+                    id="messageInput"
+                    class="chat-input"
+                    placeholder="输入您的珠宝问题..."
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResize()"
+                    oncompositionstart="isComposing=true"
+                    oncompositionend="isComposing=false"
+                ></textarea>
+            </div>
+            <div class="quick-actions">
+                <!-- + button with popover -->
+                <div class="upload-popover-wrap">
+                    <button class="add-btn" onclick="toggleUploadPopover()" title="添加">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                    </button>
+                    <div class="upload-popover" id="uploadPopover">
+                        <label class="upload-popover-item" onclick="closeUploadPopover()">
+                            <img src="agnet/%E6%96%87%E6%A1%A3.svg" width="18" height="18" alt="文档">
+                            <input type="file" id="docInput" accept=".doc,.docx,.pdf,.txt" onchange="handleDocUpload(event)" style="display:none">
+                            <span>上传文档</span>
+                        </label>
+                        <label class="upload-popover-item" onclick="closeUploadPopover()">
+                            <img src="agnet/%E5%9B%BE%E7%89%87.svg" width="18" height="18" alt="图片">
+                            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" onchange="handleFileSelect(event)" style="display:none">
+                            <span>上传图片</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Image generation toggle -->
+                <button class="action-btn" id="imageGenBtn" onclick="toggleImageMode()" title="珠宝图片生成">
+                    <img src="agnet/%E5%9B%BE%E7%89%87.svg" width="16" height="16" alt="图片生成">
+                    <span id="imageGenLabel">珠宝图片生成</span>
+                </button>
+
+                <div class="actions-spacer"></div>
+
+                <!-- Stop button -->
+                <button class="btn-stop" id="btnStop" onclick="handleStop()" style="display:none" title="停止输出">
+                    <img src="agnet/%E5%85%B3%E9%97%AD.svg" width="18" height="18" alt="停止">
+                </button>
+
+                <!-- Send button -->
+                <button class="btn-send" id="btnSend" onclick="handleSend()" disabled title="发送">
+                    <img src="agnet/jtou.svg" width="18" height="18" alt="发送">
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ===== API Base URL =====
+// 默认同源访问（通过 Spring Boot 服务打开页面时有效）
+// 如果通过 IDE 预览或其他方式打开，请修改为你的后端地址，例如 'http://localhost:8080'
+const API_BASE = '';
+
+// ===== State =====
+let sessionId = generateId('chat_');
+let selectedAgent = '';
+let activePolling = {};
+let imageBase64 = null;
+let conversations = [];
+let currentConvId = '';
+let currentRequestStartTime = null;
+let imageMode = false;
+let isComposing = false;
+let currentFirstUserMessage = ''; // 当前会话第一条用户消息，用作标题
+
+// ===== Conversation Storage =====
+const STORAGE_KEY = 'jewel_conversations';
+
+function loadConversations() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        conversations = data ? JSON.parse(data) : [];
+    } catch (e) {
+        conversations = [];
+    }
+}
+
+function saveConversations() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    } catch (e) {}
+}
+
+function upsertConversation(sid, title) {
+    const existing = conversations.find(c => c.sessionId === sid);
+    if (existing) {
+        existing.title = title || existing.title;
+        existing.updatedAt = Date.now();
+    } else {
+        conversations.unshift({
+            sessionId: sid,
+            title: title || '新会话',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    }
+    saveConversations();
+    renderConversationList();
+}
+
+function removeConversation(sid) {
+    conversations = conversations.filter(c => c.sessionId !== sid);
+    saveConversations();
+    renderConversationList();
+}
+
+function renderConversationList() {
+    const list = document.getElementById('conversationList');
+    if (conversations.length === 0) {
+        list.innerHTML = '<div class="conv-empty">暂无会话</div>';
+        return;
+    }
+    list.innerHTML = conversations
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map(c => `
+            <div class="conv-item${c.sessionId === sessionId ? ' active' : ''}" data-sid="${c.sessionId}">
+                <span class="conv-title">${escapeHtml(c.title)}</span>
+                <button class="btn-delete" data-sid="${c.sessionId}" title="删除">×</button>
+            </div>`)
+        .join('');
+}
+
+// 侧边栏点击事件委托
+document.getElementById('conversationList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-delete');
+    if (btn) {
+        e.stopPropagation();
+        const sid = btn.dataset.sid;
+        if (confirm('确定删除此会话？')) {
+            removeConversation(sid);
+            fetch(API_BASE + `/a2a/conversations/${sid}`, { method: 'DELETE' }).catch(() => {});
+            if (sid === sessionId) {
+                handleNewChat();
+            }
+        }
+        return;
+    }
+    const item = e.target.closest('.conv-item');
+    if (item && item.dataset.sid !== sessionId) {
+        switchConversation(item.dataset.sid);
+    }
+});
+
+// ===== ID Generator =====
+function generateId(prefix) {
+    return prefix + Math.random().toString(36).substring(2, 10);
+}
+
+// ===== XSS Protection =====
+function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(text).replace(/[&<>"']/g, c => map[c]);
+}
+
+function escapeAttr(text) {
+    return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function sanitizeAndRender(text) {
+    let safe = escapeHtml(text);
+    safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    safe = safe.replace(/^- (.+)$/gm, '<li>$1</li>');
+    return safe;
+}
+
+// ===== SVG Icons =====
+function logoImg(size) {
+    return `<img src="agnet/Voice%20of%20Stars.svg" width="${size}" height="${size}" alt="Voice of Stars" style="flex-shrink:0">`;
+}
+
+// ===== Agent Selector =====
+document.getElementById('agentSelector').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('agent-btn')) return;
+    document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    selectedAgent = e.target.dataset.agent;
+});
+
+// ===== Upload Popover =====
+function toggleUploadPopover() {
+    document.getElementById('uploadPopover').classList.toggle('show');
+}
+
+function closeUploadPopover() {
+    document.getElementById('uploadPopover').classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+    const popover = document.getElementById('uploadPopover');
+    const addBtn = document.querySelector('.add-btn');
+    if (popover.classList.contains('show') && !popover.contains(e.target) && e.target !== addBtn && !addBtn.contains(e.target)) {
+        popover.classList.remove('show');
+    }
+});
+
+// ===== Image Mode Toggle =====
+function toggleImageMode() {
+    imageMode = !imageMode;
+    const wrapper = document.getElementById('inputWrapper');
+    const label = document.getElementById('imageGenLabel');
+    const btn = document.getElementById('imageGenBtn');
+    const input = document.getElementById('messageInput');
+
+    if (imageMode) {
+        wrapper.classList.add('is-image-mode');
+        label.textContent = '关闭';
+        btn.classList.add('active');
+        input.placeholder = '输入珠宝设计描述...';
+    } else {
+        wrapper.classList.remove('is-image-mode');
+        label.textContent = '珠宝图片生成';
+        btn.classList.remove('active');
+        input.placeholder = '输入您的珠宝问题...';
+    }
+    input.focus();
+}
+
+// ===== Image Upload =====
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+        imageBase64 = await compressAndEncode(file);
+        showImagePreview(imageBase64);
+    } catch (err) {
+        alert(err.message);
+    }
+    event.target.value = '';
+}
+
+async function compressAndEncode(file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) throw new Error('图片大小不能超过 10MB');
+    const bitmap = await createImageBitmap(file);
+    const maxWidth = 1024;
+    const scale = Math.min(1, maxWidth / bitmap.width);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width * scale;
+    canvas.height = bitmap.height * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+function showImagePreview(base64) {
+    const bar = document.getElementById('imagePreviewBar');
+    bar.innerHTML = `
+        <div class="preview-item">
+            <img src="${base64}" class="preview-thumb" alt="preview">
+            <button class="preview-remove" onclick="removeImage()">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>`;
+}
+
+function removeImage() {
+    imageBase64 = null;
+    document.getElementById('imagePreviewBar').innerHTML = '';
+}
+
+// ===== Doc Upload =====
+function handleDocUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    alert('文档上传功能需要后端支持，当前仅支持图片上传');
+    event.target.value = '';
+}
+
+// ===== Send =====
+function handleKeyDown(event) {
+    if (isComposing) return;
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        handleSend();
+    }
+}
+
+function autoResize() {
+    const el = document.getElementById('messageInput');
+    el.style.height = 'auto';
+    el.style.height = Math.min(Math.max(el.scrollHeight, 24), 160) + 'px';
+}
+
+async function handleSend() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text && !imageBase64) return;
+    if (text.length > 5000) { alert('消息过长，请控制在 5000 字以内'); return; }
+
+    // Image generation mode
+    if (imageMode && text) {
+        input.value = '';
+        input.style.height = 'auto';
+        if (!currentFirstUserMessage) {
+            currentFirstUserMessage = text.substring(0, 30);
+        }
+        await sendImageGeneration(text);
+        return;
+    }
+
+    const message = text || '请分析这张图片';
+    input.value = '';
+    input.style.height = 'auto';
+    input.disabled = true;
+    document.getElementById('btnSend').disabled = true;
+
+    // 记录第一条用户消息作为会话标题
+    if (!currentFirstUserMessage) {
+        currentFirstUserMessage = text.substring(0, 30);
+    }
+
+    // Hide welcome
+    const welcome = document.getElementById('welcomeBlock');
+    if (welcome) welcome.style.display = 'none';
+
+    // Render user message
+    renderUserMessage(message, imageBase64);
+    const loadingEl = renderLoading();
+    currentRequestStartTime = Date.now();
+
+    try {
+        const body = { message: message, sessionId: sessionId };
+        if (selectedAgent) body.agentId = selectedAgent;
+        if (imageBase64) body.message = `${message}\n[图片数据: ${imageBase64}]`;
+
+        const res = await fetch(API_BASE + '/a2a/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { taskId } = await res.json();
+
+        startPolling(taskId, loadingEl);
+    } catch (err) {
+        removeLoading(loadingEl);
+        renderError(err.message);
+        finishSend();
+    } finally {
+        imageBase64 = null;
+        document.getElementById('imagePreviewBar').innerHTML = '';
+    }
+}
+
+async function sendImageGeneration(prompt) {
+    const welcome = document.getElementById('welcomeBlock');
+    if (welcome) welcome.style.display = 'none';
+
+    renderUserMessage('[图片生成] ' + prompt, null);
+    const loadingEl = renderLoading();
+    currentRequestStartTime = Date.now();
+
+    try {
+        const body = { message: `请生成一张珠宝设计图：${prompt}`, sessionId: sessionId };
+        if (selectedAgent) body.agentId = 'designer';
+
+        const res = await fetch(API_BASE + '/a2a/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { taskId } = await res.json();
+
+        startPolling(taskId, loadingEl);
+    } catch (err) {
+        removeLoading(loadingEl);
+        renderError(err.message);
+        finishSend();
+    }
+}
+
+function finishSend() {
+    const input = document.getElementById('messageInput');
+    input.disabled = false;
+    updateSendButton();
+    document.getElementById('btnStop').style.display = 'none';
+    document.getElementById('btnSend').style.display = '';
+    currentRequestStartTime = null;
+    input.focus();
+}
+
+function updateSendButton() {
+    const input = document.getElementById('messageInput');
+    const btn = document.getElementById('btnSend');
+    const hasContent = input.value.trim() || imageBase64;
+    btn.disabled = !hasContent;
+}
+
+function sendQuickQuestion(q) {
+    document.getElementById('messageInput').value = q;
+    autoResize();
+    handleSend();
+}
+
+// ===== Polling =====
+function startPolling(taskId, loadingEl) {
+    let count = 0;
+    const maxCount = 60;
+    document.getElementById('btnSend').style.display = 'none';
+    document.getElementById('btnStop').style.display = '';
+
+    const timer = setInterval(async () => {
+        count++;
+        try {
+            const res = await fetch(API_BASE + `/a2a/task/${taskId}`);
+            const data = await res.json();
+
+            if (data.status === 'SUCCESS') {
+                clearInterval(timer);
+                delete activePolling[taskId];
+                removeLoading(loadingEl);
+                renderAIResponse(data.output);
+                // 会话完成后自动保存到列表
+                upsertConversation(sessionId, currentFirstUserMessage || '新会话');
+                finishSend();
+            } else if (data.status === 'FAILED') {
+                clearInterval(timer);
+                delete activePolling[taskId];
+                removeLoading(loadingEl);
+                renderError(data.message || '任务执行失败');
+                finishSend();
+            } else if (count >= maxCount) {
+                clearInterval(timer);
+                delete activePolling[taskId];
+                removeLoading(loadingEl);
+                renderError('任务超时（60秒）');
+                finishSend();
+            }
+        } catch (err) {
+            clearInterval(timer);
+            delete activePolling[taskId];
+            removeLoading(loadingEl);
+            renderError('网络错误: ' + err.message);
+            finishSend();
+        }
+    }, 1000);
+
+    activePolling[taskId] = { timer, loadingEl };
+}
+
+// ===== Stop =====
+async function handleStop() {
+    for (const [taskId, entry] of Object.entries(activePolling)) {
+        clearInterval(entry.timer);
+        removeLoading(entry.loadingEl);
+        delete activePolling[taskId];
+        try { await fetch(API_BASE + `/a2a/task/${taskId}/cancel`, { method: 'POST' }); } catch (e) {}
+    }
+    renderCancelled();
+    finishSend();
+}
+
+// ===== Render Functions =====
+function renderUserMessage(text, imgBase64) {
+    const area = document.getElementById('messagesArea');
+    const row = document.createElement('div');
+    row.className = 'message-row user' + (imgBase64 ? ' has-image' : '');
+
+    if (imgBase64) {
+        row.innerHTML = `
+            <div class="msg-images"><img src="${imgBase64}" alt="uploaded"></div>
+            <div class="msg-bubble">${sanitizeAndRender(text || '')}<span class="msg-time">${formatTime()}</span></div>`;
+    } else {
+        row.innerHTML = `<div class="msg-bubble">${sanitizeAndRender(text)}<span class="msg-time">${formatTime()}</span></div>`;
+    }
+    area.appendChild(row);
+    scrollToBottom();
+}
+
+function renderLoading() {
+    const area = document.getElementById('messagesArea');
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    const diamond = logoImg(18);
+    row.innerHTML = `
+        <div class="msg-bubble">
+            <div class="msg-header">
+                <div class="msg-header-row">
+                    ${diamond}
+                    <span class="msg-header-name">Jewel-A2A</span>
+                </div>
+                <div class="msg-header-sub">处理中...</div>
+                <hr class="msg-header-divider">
+            </div>
+            <div class="msg-typing">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+        </div>`;
+    area.appendChild(row);
+    scrollToBottom();
+    return row;
+}
+
+function removeLoading(el) {
+    if (el && el.parentNode) el.remove();
+}
+
+function renderAIResponse(output) {
+    const area = document.getElementById('messagesArea');
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+
+    const duration = currentRequestStartTime
+        ? ((Date.now() - currentRequestStartTime) / 1000).toFixed(1)
+        : null;
+
+    let html = '';
+    if (output.toolCalls && output.toolCalls.length > 0) {
+        output.toolCalls.forEach(tc => {
+            html += `<span class="tool-badge">${escapeHtml(tc.tool || tc)}</span>`;
+        });
+    }
+    if (output.reply) {
+        html += sanitizeAndRender(output.reply);
+    }
+    if (output.imageUrl) {
+        html += `<br><img src="${escapeAttr(output.imageUrl)}" alt="生成的设计图" onclick="window.open(this.src)">`;
+    }
+    if (!html) html = sanitizeAndRender(JSON.stringify(output, null, 2));
+
+    const diamond = logoImg(18);
+    row.innerHTML = `
+        <div class="msg-bubble">
+            <div class="msg-header">
+                <div class="msg-header-row">
+                    ${diamond}
+                    <span class="msg-header-name">Jewel-A2A</span>
+                </div>
+                ${duration ? `<div class="msg-header-sub">任务耗时 ${duration}s</div>` : ''}
+                <hr class="msg-header-divider">
+            </div>
+            <div class="msg-text">${html}</div>
+            <span class="msg-time">${formatTime()}</span>
+        </div>`;
+    area.appendChild(row);
+    scrollToBottom();
+}
+
+function renderError(message) {
+    const area = document.getElementById('messagesArea');
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    const diamond = logoImg(18);
+    row.innerHTML = `
+        <div class="msg-bubble">
+            <div class="msg-header">
+                <div class="msg-header-row">
+                    ${diamond}
+                    <span class="msg-header-name">Jewel-A2A</span>
+                </div>
+                <hr class="msg-header-divider">
+            </div>
+            <div class="msg-text error">
+                ${escapeHtml(message)}
+                <br><button class="retry-btn" onclick="handleRetry()">重试</button>
+            </div>
+        </div>`;
+    area.appendChild(row);
+    scrollToBottom();
+}
+
+function renderCancelled() {
+    const area = document.getElementById('messagesArea');
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    const diamond = logoImg(18);
+    row.innerHTML = `
+        <div class="msg-bubble">
+            <div class="msg-header">
+                <div class="msg-header-row">
+                    ${diamond}
+                    <span class="msg-header-name">Jewel-A2A</span>
+                </div>
+                <hr class="msg-header-divider">
+            </div>
+            <div class="msg-text" style="color:#999;font-style:italic">任务已取消</div>
+        </div>`;
+    area.appendChild(row);
+    scrollToBottom();
+}
+
+function handleRetry() {
+    document.getElementById('messageInput').focus();
+}
+
+// ===== Format =====
+function formatTime() {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+// ===== Scroll =====
+function scrollToBottom() {
+    const area = document.getElementById('messagesArea');
+    setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
+}
+
+document.getElementById('messagesArea').addEventListener('scroll', function() {
+    const btn = document.getElementById('scrollBottomBtn');
+    const threshold = this.scrollHeight - this.scrollTop - this.clientHeight;
+    btn.style.display = threshold > 200 ? 'flex' : 'none';
+});
+
+// ===== New Chat =====
+function handleNewChat() {
+    for (const [taskId, entry] of Object.entries(activePolling)) {
+        clearInterval(entry.timer);
+        removeLoading(entry.loadingEl);
+        delete activePolling[taskId];
+    }
+    sessionId = generateId('chat_');
+    currentFirstUserMessage = '';
+    currentConvId = '';
+    document.getElementById('messagesArea').innerHTML = `
+        <div class="welcome" id="welcomeBlock">
+            ${logoImg(56)}
+            <h2 class="welcome-title">欢迎来到 Jewel-A2A 珠宝顾问</h2>
+            <p class="welcome-desc">我可以帮您分析珠宝图片、生成设计图、校验工艺可行性、检索珠宝知识</p>
+            <div class="quick-questions">
+                <button class="quick-btn" onclick="sendQuickQuestion('18K金和铂金有什么区别？')">18K金和铂金有什么区别？</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('钻石怎么选？')">钻石怎么选？</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('设计一枚玫瑰金钻戒')">设计一枚玫瑰金钻戒</button>
+                <button class="quick-btn" onclick="sendQuickQuestion('定制珠宝的流程是什么？')">定制珠宝的流程是什么？</button>
+            </div>
+        </div>`;
+    document.getElementById('btnSend').style.display = '';
+    document.getElementById('btnStop').style.display = 'none';
+    renderConversationList();
+    updateSendButton();
+    finishSend();
+}
+
+// ===== Input listener =====
+document.getElementById('messageInput').addEventListener('input', updateSendButton);
+
+// ===== Switch Conversation =====
+async function switchConversation(sid) {
+    // 停止当前轮询
+    for (const [taskId, entry] of Object.entries(activePolling)) {
+        clearInterval(entry.timer);
+        removeLoading(entry.loadingEl);
+        delete activePolling[taskId];
+    }
+    sessionId = sid;
+    currentFirstUserMessage = '';
+    document.getElementById('btnSend').style.display = '';
+    document.getElementById('btnStop').style.display = 'none';
+    updateSendButton();
+
+    try {
+        const res = await fetch(API_BASE + `/a2a/chat/${sid}`);
+        if (!res.ok) throw new Error('加载失败');
+        const data = await res.json();
+        const messages = data.messages || [];
+        renderMessagesFromHistory(messages);
+        // 用第一条用户消息作为标题
+        const firstUser = messages.find(m => m.role === 'user');
+        if (firstUser) {
+            currentFirstUserMessage = firstUser.content.substring(0, 30);
+        }
+    } catch (e) {
+        document.getElementById('messagesArea').innerHTML = `
+            <div class="welcome" id="welcomeBlock">
+                ${logoImg(56)}
+                <h2 class="welcome-title">欢迎来到 Jewel-A2A 珠宝顾问</h2>
+                <p class="welcome-desc">加载失败，请重试</p>
+            </div>`;
+    }
+    renderConversationList();
+    finishSend();
+}
+
+function renderMessagesFromHistory(messages) {
+    const area = document.getElementById('messagesArea');
+    area.innerHTML = '';
+    const welcome = area.querySelector('#welcomeBlock');
+    if (welcome) welcome.style.display = 'none';
+
+    messages.forEach(msg => {
+        if (msg.role === 'user') {
+            renderUserMessage(msg.content, null);
+        } else if (msg.role === 'assistant') {
+            const row = document.createElement('div');
+            row.className = 'message-row assistant';
+            const diamond = logoImg(18);
+            row.innerHTML = `
+                <div class="msg-bubble">
+                    <div class="msg-header">
+                        <div class="msg-header-row">
+                            ${diamond}
+                            <span class="msg-header-name">Jewel-A2A</span>
+                        </div>
+                        <hr class="msg-header-divider">
+                    </div>
+                    <div class="msg-text">${sanitizeAndRender(msg.content || '')}</div>
+                </div>`;
+            area.appendChild(row);
+        }
+    });
+    scrollToBottom();
+}
+
+// ===== Init =====
+loadConversations();
+renderConversationList();
+// 从后端同步会话列表
+fetch(API_BASE + '/a2a/conversations').then(res => res.json()).then(list => {
+    if (Array.isArray(list)) {
+        list.forEach(c => {
+            const exist = conversations.find(lc => lc.sessionId === c.sessionId);
+            if (!exist) {
+                conversations.push({
+                    sessionId: c.sessionId,
+                    title: '会话 ' + c.sessionId.substring(0, 8),
+                    createdAt: c.createdAt ? Date.parse(c.createdAt) : Date.now(),
+                    updatedAt: c.updatedAt ? Date.parse(c.updatedAt) : Date.now()
+                });
+            }
+        });
+        saveConversations();
+        renderConversationList();
+    }
+}).catch(() => {});
+document.getElementById('messageInput').focus();
+updateSendButton();
+</script>
+</body>
+</html>

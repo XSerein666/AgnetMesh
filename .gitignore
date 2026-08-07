@@ -28,6 +28,21 @@ Thumbs.db
 # Environment
 .env
 *.env
+!.env.example
+
+# Credentials & Secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+credentials.json
+service-account.json
+secrets.yml
+secrets.yaml
+secrets.properties
 
 # Logs
 *.log

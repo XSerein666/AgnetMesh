@@ -38,4 +38,9 @@ public interface MemoryManager {
      * 获取长期记忆文本（注入 system prompt），未启用长期记忆时返回空字符串
      */
     String getLongTermMemory(String sessionId, String query);
+
+    /**
+     * 清除指定会话的所有记忆数据
+     */
+    void clear(String sessionId);
 }

@@ -20,6 +20,7 @@ Thumbs.db
 application-local.yml
 application-prod.yml
 *.env
+!.env.example
 
 # 需求文档
 *.docx

@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class SseEmitterService {
 
-    /** 超时时间：30 分钟 */
-    private static final long TIMEOUT = 30 * 60 * 1000L;
+    /** 超时时间：120s，与远程超时对齐 */
+    private static final long TIMEOUT = 120_000L;
 
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
@@ -75,6 +75,21 @@ public class SseEmitterService {
                 emitter.complete();
             } catch (IOException e) {
                 log.error("SSE 完成推送失败: taskId={}", taskId, e);
+            } finally {
+                emitters.remove(taskId);
+            }
+        }
+    }
+
+    /**
+     * 异常完成：推送错误事件并关闭连接。
+     * LLM 调用异常时必须调用此方法，防止 SseEmitter 连接泄漏。
+     */
+    public void completeWithError(String taskId, Throwable error) {
+        SseEmitter emitter = emitters.get(taskId);
+        if (emitter != null) {
+            try {
+                emitter.completeWithError(error);
             } finally {
                 emitters.remove(taskId);
             }
