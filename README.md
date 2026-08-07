@@ -34,7 +34,7 @@
         <dependency>
             <groupId>io.github.xserein666</groupId>
             <artifactId>agentmesh-bom</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
+            <version>1.1.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -62,7 +62,7 @@ agentmesh:
       agent-id: my-agent
       name: "我的智能助手"
       description: "一个支持天气查询和知识检索的 Agent"
-      version: "1.0.0"
+      version: "1.1.1"
       url: http://localhost:8080
   routing:
     strategy: keyword   # keyword | llm | ab

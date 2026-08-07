@@ -100,7 +100,7 @@ agentmesh:
       agent-id: agent-demo
       name: "AgentMesh Demo Agent"
       description: "演示 Agent"
-      version: "1.0.0"
+      version: "1.1.1"
       url: http://localhost:8080
 
   # 路由策略: keyword | llm | ab
