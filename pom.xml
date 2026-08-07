@@ -227,6 +227,11 @@
         <!-- Maven Central 发布 -->
         <profile>
             <id>release</id>
+            <modules>
+                <module>agentmesh-bom</module>
+                <module>agentmesh-core</module>
+                <module>agentmesh-examples</module>
+            </modules>
             <distributionManagement>
                 <snapshotRepository>
                     <id>ossrh</id>
