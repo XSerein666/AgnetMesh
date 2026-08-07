@@ -10,7 +10,7 @@
 
 ### 报告 Bug
 
-1. 在 [Issues](https://github.com/XSerein666/AgnetMesh/issues) 中搜索，确认 Bug 未被报告过
+1. 在 [Issues](https://github.com/XSerein666/AgentMesh/issues) 中搜索，确认 Bug 未被报告过
 2. 使用 Bug Report 模板创建 Issue，包含：
    - 复现步骤
    - 期望行为 vs 实际行为
@@ -93,20 +93,25 @@ agentmesh/
 ├── agentmesh-bom/          # 版本管理
 ├── agentmesh-core/         # 核心框架
 │   ├── agent/              # Agent 定义与编排
+│   ├── collaboration/      # 多 Agent 协作
 │   ├── routing/            # 路由策略
 │   ├── llm/                # LLM 客户端与适配器
 │   ├── tool/               # 工具抽象与注册
+│   │   └── marketplace/    # 工具市场
+│   ├── memory/             # 记忆管理
+│   ├── planning/           # 任务规划
+│   ├── prompt/             # Prompt 模板
 │   ├── remote/             # 远程调用与工具发现
 │   ├── protocol/           # A2A 协议
 │   ├── registry/           # Agent 注册中心
 │   ├── infrastructure/     # 可观测性
 │   ├── session/            # 会话管理
-│   ├── task/               # 任务管理
-│   └── prompt/             # Prompt 模板
+│   └── task/               # 任务管理
 └── agentmesh-examples/     # 示例项目
+    └── jewel-a2a/          # 珠宝工艺 A2A 多 Agent 协作示例
 ```
 
 ## 获取帮助
 
-- 在 [Issues](https://github.com/XSerein666/AgnetMesh/issues) 中提问
-- 在 [Discussions](https://github.com/XSerein666/AgnetMesh/discussions) 中讨论
+- 在 [Issues](https://github.com/XSerein666/AgentMesh/issues) 中提问
+- 在 [Discussions](https://github.com/XSerein666/AgentMesh/discussions) 中讨论

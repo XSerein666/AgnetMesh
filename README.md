@@ -34,7 +34,7 @@
         <dependency>
             <groupId>io.github.xserein666</groupId>
             <artifactId>agentmesh-bom</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -52,10 +52,11 @@
 ### 2. 配置
 
 ```yaml
-dashscope:
-  api-key: ${DASHSCOPE_API_KEY}   # 阿里云百炼 API Key
-
 agentmesh:
+  llm:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}   # 阿里云百炼 API Key
+
   registry:
     self:
       agent-id: my-agent
@@ -100,13 +101,13 @@ public class AgentConfig {
 > 示例代码仅在 GitHub 仓库中提供，不发布到 Maven Central。
 
 ```bash
-git clone https://github.com/XSerein666/AgnetMesh.git
-cd AgentMesh/agentmesh-examples/agentmesh-demo
+git clone https://github.com/XSerein666/AgentMesh.git
+cd AgentMesh/agentmesh-examples/jewel-a2a
 set DASHSCOPE_API_KEY=sk-your-key
-mvn spring-boot:run
+mvn spring-boot:run -pl jewel-a2a-starter
 ```
 
-然后访问 `http://localhost:8080/chat?msg=北京今天天气怎么样`
+然后访问 `http://localhost:8080/.well-known/agent.json` 查看 Agent Card
 
 ## 核心能力
 
@@ -186,9 +187,14 @@ agentmesh/
 ├── agentmesh-bom/          # 版本管理
 ├── agentmesh-core/         # 核心框架
 │   ├── agent/              # Agent 定义与编排引擎
+│   ├── collaboration/      # 多 Agent 协作（Swarm/Debate/Supervised）
 │   ├── routing/            # 路由策略（关键词/LLM/A/B）
 │   ├── llm/                # LLM 客户端与适配器
 │   ├── tool/               # 工具抽象与注册中心
+│   │   └── marketplace/    # 工具市场（安装/卸载/健康检查/版本管理）
+│   ├── memory/             # 记忆管理（滑动窗口/向量存储）
+│   ├── planning/           # 任务规划（LLM 分解/DAG 执行）
+│   ├── prompt/             # Prompt 模板引擎
 │   ├── remote/             # 远程 Agent 调用与工具发现
 │   ├── protocol/           # A2A 协议（AgentCard/Task/SSE）
 │   ├── registry/           # Agent 注册中心
@@ -196,7 +202,7 @@ agentmesh/
 │   ├── session/            # 会话管理
 │   └── task/               # 任务管理
 └── agentmesh-examples/     # 示例项目（仅 GitHub）
-    └── agentmesh-demo/     # 快速体验 Demo
+    └── jewel-a2a/          # 珠宝工艺 A2A 多 Agent 协作示例
 ```
 
 ## 对比同类框架
@@ -209,7 +215,7 @@ agentmesh/
 | 路由缓存 | **LRU + TTL** | ❌ | ❌ | ❌ |
 | 多 Agent 编排 | 顺序/并行/条件 | 基础 | 实验性 | 基础 |
 | A2A 协议 | ✅ | ❌ | ❌ | ✅ |
-| MCP 协议 | 计划中 | ❌ | ❌ | ✅ |
+| MCP 协议 | ✅ | ❌ | ❌ | ✅ |
 | 安全沙箱 | 计划中 | ❌ | ❌ | ✅ |
 | LLM 适配 | DashScope/OpenAI/Ollama/DeepSeek | 多模型 | 多模型 | 百炼为主 |
 
