@@ -11,8 +11,8 @@ spring:
 
   # 数据源配置（PostgreSQL + pgvector）
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jewel_a2a}
-    username: ${DB_USERNAME:postgres}
+    url: jdbc:postgresql://localhost:5432/jewel_a2a
+    username: postgres
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
@@ -30,24 +30,189 @@ spring:
         max-size: 8
         queue-capacity: 100
 
+  # Phase 4c：工具市场配置
+  agentmesh:
+    marketplace:
+      enabled: true
+      data-dir: ./data/tool-marketplace
+      phase2:
+        enabled: true
+      phase3:
+        enabled: true
+      phase4:
+        enabled: true
+      api-keys:
+        publisher: ${MARKETPLACE_PUBLISHER_KEY:}
+        admin: ${MARKETPLACE_ADMIN_KEY:}
+      internal-token: ${MARKETPLACE_INTERNAL_TOKEN:}
+
 # MyBatis-Plus 配置
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# DashScope API 配置
+# 【Deprecated】DashScope API 配置（根级别，待废弃）
+# 此配置将在 Phase 2 完成后移除，请统一使用 agentmesh.llm.dashscope.api-key
 dashscope:
-  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+  api-key: ${DASHSCOPE_API_KEY:}
 
-# AgentMesh LLM 自动配置
+# ============================================
+# AgentMesh 框架配置
+# ============================================
 agentmesh:
+  # LLM 多 Provider 配置（Phase 1）
   llm:
     provider: dashscope
+
+    # DashScope（当前默认）
     dashscope:
-      api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+      api-key: ${DASHSCOPE_API_KEY:}
+      model: qwen-plus
+
+    # OpenAI
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: https://api.openai.com/v1
+      model: gpt-4o
+
+    # DeepSeek
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: https://api.deepseek.com/v1
+      model: deepseek-chat
+
+    # Ollama
+    ollama:
+      base-url: http://localhost:11434
+      model: qwen2.5:7b
+
+  # 记忆管理（Phase 1：滑动窗口 + 摘要压缩）
+  memory:
+    short-term:
+      window-size: 6
+      summary-threshold: 10
+      summary-model: qwen-turbo
+      max-summary-tokens: 300
+    # Phase 4d：长期记忆 + 向量存储
+    long-term:
+      enabled: true
+      extraction-model: qwen-turbo
+      extraction-interval: 5
+      vector-store:
+        type: in-memory
+        similarity-threshold: 0.7
+
+  # 路由策略配置（Phase 2）
+  routing:
+    strategy: keyword
+    llm:
+      top-k: 5
+      skip-recall-threshold: 10
+      confidence-threshold: 0.6
+      timeout: 5
+      cache:
+        enabled: true
+        max-size: 100
+        ttl: 300
+    ab:
+      sample-rate: 1.0
+
+  # 协作框架配置（Phase 3）
+  collaboration:
+    message-bus:
+      type: in-memory
+    approval:
+      enabled: false
+      timeout-seconds: 300
+      callback-url: http://localhost:8080/a2a/approval/callback
+    workflow-state:
+      store-type: file
+      file-path: ./data/workflow-states
+      cleanup:
+        enabled: true
+        max-age-hours: 24
+    debate:
+      max-rounds: 5
+      timeout-seconds: 120
+      judge-model: qwen-plus
+    supervisor:
+      max-workers: 5
+      timeout-seconds: 300
+      retry-on-failure: true
+    swarm:
+      population-size: 5
+      convergence-threshold: 0.9
+      max-generations: 10
+
+  # 注册中心配置（Phase 4a）
+  registry:
+    self:
+      agent-id: jewel-a2a
+      name: Jewel-A2A 珠宝定制智能体
+      description: 珠宝定制灵感生成与工艺可行性校验智能体，支持多 Agent 协作（设计师/工艺师/审核员）
+      version: 2.0.0
+      url: http://localhost:8080
+    peer-urls:
+      - http://remote-craft-expert:8081
+      - http://remote-design-assets:8082 
+    auth:
+      enabled: true
+      api-key: ${AGENT_AUTH_API_KEY:}
+    cache:
+      ttl-seconds: 60
+      lazy-refetch: true
+
+  # 远程工具配置（Phase 4a）
+  remote:
+    timeout: 15000
+    import:
+      agents:
+        - agent-id: remote-craft-expert
+          skills:
+            - check_craft_feasibility
+            - search_craft_knowledge
+        - agent-id: remote-design-assets
+          skills:
+            - generate_jewelry_design
+
+  # 任务规划配置（Phase 4b）
+  planning:
+    enabled: true
+    max-subtasks: 5
+    planner-model: qwen-plus
+    executor:
+      timeout-seconds: 15000
+      max-concurrency: 3
+    prompt-template: planner
+
+  # 链路追踪（Phase 4d）
+  trace:
+    enabled: true
+    header-name: X-Trace-Id
 
 # 日志级别
 logging:
   level:
     com.jewel: DEBUG
+    # 生产环境禁止打印 SQL 日志
+    # com.jewel.a2a.repository: WARN
+
+# ============================================
+# Actuator 监控配置
+# ============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,agentmesh
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: false
