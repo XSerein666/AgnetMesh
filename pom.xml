@@ -230,7 +230,6 @@
             <modules>
                 <module>agentmesh-bom</module>
                 <module>agentmesh-core</module>
-                <module>agentmesh-examples</module>
             </modules>
             <distributionManagement>
                 <snapshotRepository>
